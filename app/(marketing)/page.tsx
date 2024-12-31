@@ -31,7 +31,7 @@ export default function Marketing() {
             {!isLoading && isAuthenticated && (
             <>
                 <Button variant="default" asChild>
-                <Link href="/dashboard">Enter Pilot
+                <Link href="/workspace">Enter Pilot
                 </Link>
                 </Button>
                 <UserButton/>
