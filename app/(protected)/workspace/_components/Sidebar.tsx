@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/clerk-react";
 import {
@@ -27,12 +27,34 @@ import { Toaster, toast } from "react-hot-toast"; // Import react-hot-toast
 
 const Sidebar = () => {
   const { user } = useUser();
+  const [projects, setProjects] = useState([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false); // State to control dialog visibility
   const [projectName, setProjectName] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const sidebarRef = useRef<HTMLElement>(null);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch("/api/projects", {
+        method: "GET",
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to fetch projects");
+      }
+
+      setProjects(result.data); // Set the fetched projects in state
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch projects.");
+    }
+  };
+  useEffect(() => {
+        fetchProjects();
+  }, []);
 
   const handleCreateProject = async () => {
     if (!projectName) {
@@ -62,7 +84,7 @@ const Sidebar = () => {
 
       // Show success toaster
       toast.success("Project created successfully!", { position: "top-center" });
-
+      await fetchProjects();
 
       setIsDialogOpen(false); // Close the dialog on success
       setProjectName(""); // Reset the form fields
@@ -162,30 +184,34 @@ const Sidebar = () => {
         </div>
 
         <div className="flex flex-col mt-4">
-          {["Bitfluencer", "Discord bot", "Slack bot", "Whatsapp bot", "Launch campaign"].map((item, index) => (
-            <div key={index} className="flex hover:rounded-md mr-2 items-center ml-2 mb-2 hover:bg-gray-200 cursor-pointer p-2">
-              <Folder className="w-5 h-5 mr-2" fill="#2563eb" />
-              <p className="text-sm">{item}</p>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <div role="button" className="h-full ml-auto rounded-sm hover:bg-neutral-300">
-                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-60" align="start" side="right" forceMount>
-                  <DropdownMenuItem>
-                    <Trash className="h-4 w-4 mr-2" />
-                    Delete project
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Star className="h-4 w-4 mr-2" />
-                    Star this project
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
+          {projects.length === 0 ? (
+            <p>No projects found.</p>
+          ) : (
+            projects.map((project) => (
+              <div key={project.id} className="flex hover:rounded-md mr-2 items-center ml-2 mb-2 hover:bg-gray-200 cursor-pointer p-2">
+                <Folder className="w-5 h-5 mr-2" fill="#2563eb" />
+                <p className="text-sm">{project.name}</p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <div role="button" className="h-full ml-auto rounded-sm hover:bg-neutral-300">
+                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-60" align="start" side="right" forceMount>
+                    <DropdownMenuItem>
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete project
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Star className="h-4 w-4 mr-2" />
+                      Star this project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))
+          )}
         </div>
       </aside>
     </>
