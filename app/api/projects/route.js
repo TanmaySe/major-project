@@ -13,9 +13,14 @@ export async function GET(request) {
 
     // Query to get projects for the current user
     const { data, error } = await supabase
-      .from("project")
-      .select("id, name, desc")
-      .eq("created_by", user?.emailAddresses[0].emailAddress);
+  .from("project")
+  .select(`
+    id, 
+    name, 
+    desc,
+    members!inner(email)
+  `)
+  .eq("members.email", user?.emailAddresses[0].emailAddress);
 
     if (error) {
       throw error;
