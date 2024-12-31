@@ -137,10 +137,10 @@ const Sidebar = () => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button disabled={isCreating} className="ml-2 max-w-56 mt-4">
-              {isCreating ? "Creating..." : "New Project"} <PlusCircle className="h-4 mr-2 w-4" />
+              New Project<PlusCircle className="h-4 mr-2 w-4" />
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] z-[999999]">
             <DialogHeader>
               <DialogTitle>Create new project</DialogTitle>
               <DialogDescription>Entering project name is compulsory.</DialogDescription>
@@ -173,7 +173,7 @@ const Sidebar = () => {
             </div>
             <DialogFooter>
               <Button onClick={handleCreateProject} type="button">
-                Create
+              {isCreating ? "Creating..." : "Create"} 
               </Button>
             </DialogFooter>
           </DialogContent>
