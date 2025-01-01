@@ -1,7 +1,10 @@
+'use client';
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/clerk-react";
+import { useRouter } from 'next/navigation';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "react-hot-toast"; // Import react-hot-toast
 
 const Sidebar = () => {
+  const router = useRouter()
   const { user } = useUser();
   const [projects, setProjects] = useState([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -96,6 +100,9 @@ const Sidebar = () => {
       setIsCreating(false);
     }
   };
+  const handleProjectClick = (id) => {
+    router.push(`/workspace/${id}`)
+  }
 
   return (
     <>
@@ -188,7 +195,7 @@ const Sidebar = () => {
             <p>No projects found.</p>
           ) : (
             projects.map((project) => (
-              <div key={project.id} className="flex hover:rounded-md mr-2 items-center ml-2 mb-2 hover:bg-gray-200 cursor-pointer p-2">
+              <div key={project.id} onClick={() => handleProjectClick(project.id)} className="flex hover:rounded-md mr-2 items-center ml-2 mb-2 hover:bg-gray-200 cursor-pointer p-2">
                 <Folder className="w-5 h-5 mr-2" fill="#2563eb" />
                 <p className="text-sm">{project.name}</p>
                 <DropdownMenu>
