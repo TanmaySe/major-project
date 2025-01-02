@@ -15,14 +15,13 @@ import {
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Toaster, toast } from "react-hot-toast"; 
 
 const ProjectPage = () => {
   const { projectId } = useParams();
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
-  
-  // Tasks data
-  const tasks = [
+  const [tasks, setTasks] = useState([
     {
       task: "Create Wireframes",
       description: "Design the initial wireframes for the new feature",
@@ -72,18 +71,26 @@ const ProjectPage = () => {
       deadline: "2025-01-14",
       priority: "Low",
     },
-  ];
+  ]);
+  const [showModal, setShowModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    task: '',
+    description: '',
+    assigned: '',
+    deadline: '',
+    priority: '',
+  });
+  const [members, setMembers] = useState([]);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const fetchProjectName = async () => {
       try {
-        console.log(projectId);
         const response = await fetch(`/api/projects/${projectId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch project');
         }
         const data = await response.json();
-        // console.log(data);
         setProjectName(data.data.name);
       } catch (error) {
         console.error('Error fetching project name:', error);
@@ -92,8 +99,72 @@ const ProjectPage = () => {
       }
     };
 
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/members`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch members');
+        }
+        const data = await response.json();
+        console.log(data);
+        setMembers(data.data);
+      } catch (error) {
+        console.error('Error fetching members:', error);
+      }
+    };
+
     fetchProjectName();
+    fetchMembers();
   }, [projectId]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setNewTask((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!newTask.task) newErrors.task = 'Task name is required';
+    if (!newTask.description) newErrors.description = 'Description is required';
+    if (!newTask.assigned) newErrors.assigned = 'Assigned person is required';
+    if (!newTask.deadline) newErrors.deadline = 'Deadline is required';
+    if (!newTask.priority) newErrors.priority = 'Priority is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAddTask = async () => {
+    if (!validateForm()) return;
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/task`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTask),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+
+    //   const data = await response.json();
+    //   console.log(data);
+    //   setTasks((prevTasks) => [...prevTasks, data.task]);
+      setShowModal(false);
+      toast.success("Task created successfully!", { position: "top-center" });
+      setNewTask({
+        task: '',
+        description: '',
+        assigned: '',
+        deadline: '',
+        priority: '',
+      });
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -110,8 +181,93 @@ const ProjectPage = () => {
           <Button variant="outline">
             <User size={32} color="black" /> Invite
           </Button>
+          <Button variant="outline" onClick={() => setShowModal(true)}>
+            Add Task
+          </Button>
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-md w-1/3">
+            <h2 className="text-lg font-semibold mb-4">Add New Task</h2>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <div className="mb-4">
+                <label className="block">Task</label>
+                <input
+                  type="text"
+                  name="task"
+                  value={newTask.task}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+                {errors.task && <span className="text-red-500 text-sm">{errors.task}</span>}
+              </div>
+              <div className="mb-4">
+                <label className="block">Description</label>
+                <input
+                  type="text"
+                  name="description"
+                  value={newTask.description}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+                {errors.description && <span className="text-red-500 text-sm">{errors.description}</span>}
+              </div>
+              <div className="mb-4">
+                <label className="block">Assigned</label>
+                <select
+                  name="assigned"
+                  value={newTask.assigned}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="">Select Member</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.name}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.assigned && <span className="text-red-500 text-sm">{errors.assigned}</span>}
+              </div>
+              <div className="mb-4">
+                <label className="block">Deadline</label>
+                <input
+                  type="date"
+                  name="deadline"
+                  value={newTask.deadline}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+                {errors.deadline && <span className="text-red-500 text-sm">{errors.deadline}</span>}
+              </div>
+              <div className="mb-4">
+                <label className="block">Priority</label>
+                <select
+                  name="priority"
+                  value={newTask.priority}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="">Select Priority</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+                {errors.priority && <span className="text-red-500 text-sm">{errors.priority}</span>}
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setShowModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddTask}>Add Task</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Collapsible Section for To-do */}
       <div className="mr-3">
@@ -145,8 +301,6 @@ const ProjectPage = () => {
           </Collapsible.Content>
         </Collapsible.Root>
       </div>
-
-      {/* Collapsible Section for In Progress */}
       <div className="mr-3">
         <Collapsible.Root>
           <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
