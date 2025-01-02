@@ -43,3 +43,20 @@ export async function POST(request,{params}) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+export async function GET(request,{params}) {
+  try{
+  const { id } = await params;
+  const user = await currentUser();
+  if(!user) {
+    return NextResponse.json({error: "User not authenticated"},{status: 401})
+  }
+  const { data, error } = await supabase.from('tasks').select("*").eq("proj_id",id);
+  if(error) {
+    console.log(error);
+    return NextResponse.json({error:error.message},{status:500})
+  }
+  return NextResponse.json({data});
+  } catch(error) {
+    return NextResponse.json({error:error.message},{status:500})
+  }
+}

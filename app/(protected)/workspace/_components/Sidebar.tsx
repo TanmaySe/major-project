@@ -109,7 +109,7 @@ const Sidebar = () => {
       {/* Toaster Container */}
       <Toaster position="top-right" reverseOrder={false} />
 
-      <aside ref={sidebarRef} className={cn("group/sidebar h-full overflow-y-auto relative flex w-60 flex-col z-[9999]")}>
+      <aside ref={sidebarRef} className={cn("group/sidebar h-full overflow-y-auto relative flex w-60 flex-col z-[99999]")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div role="button" className="flex items-center text-sm p-3 w-full hover:bg-primary/5">
@@ -147,7 +147,7 @@ const Sidebar = () => {
               New Project<PlusCircle className="h-4 mr-2 w-4" />
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] z-[999999]">
+          <DialogContent className="sm:max-w-[425px] z-[99999]">
             <DialogHeader>
               <DialogTitle>Create new project</DialogTitle>
               <DialogDescription>Entering project name is compulsory.</DialogDescription>

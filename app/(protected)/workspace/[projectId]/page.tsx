@@ -21,6 +21,7 @@ const ProjectPage = () => {
   const { projectId } = useParams();
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [detailsFetchedSuccess,setDetailsFetchedSuccess] = useState(false)
   const [tasks, setTasks] = useState([
     {
       task: "Create Wireframes",
@@ -87,36 +88,52 @@ const ProjectPage = () => {
     const fetchProjectName = async () => {
       try {
         const response = await fetch(`/api/projects/${projectId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch project');
-        }
         const data = await response.json();
-        setProjectName(data.data.name);
+        if (!response.ok) {
+          throw new Error(data.error);
+        }
+        setProjectName(data.projectData.name);
+        setMembers(data.membersData);
+        setDetailsFetchedSuccess(true)
       } catch (error) {
-        console.error('Error fetching project name:', error);
+        toast.error(error.message,{position:'top-center'})
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchMembers = async () => {
-      try {
-        const response = await fetch(`/api/projects/${projectId}/members`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch members');
-        }
-        const data = await response.json();
-        console.log(data);
-        setMembers(data.data);
-      } catch (error) {
-        console.error('Error fetching members:', error);
-      }
-    };
+    // const fetchMembers = async () => {
+    //   try {
+    //     const response = await fetch(`/api/projects/${projectId}/members`);
+    //     if (!response.ok) {
+    //       throw new Error('Failed to fetch members');
+    //     }
+    //     const data = await response.json();
+    //     console.log(data);
+    //     setMembers(data.data);
+    //   } catch (error) {
+    //     console.error('Error fetching members:', error);
+    //   }
+    // };
 
     fetchProjectName();
-    fetchMembers();
+    // fetchMembers();
   }, [projectId]);
-
+  useEffect(()=>{
+    if(detailsFetchedSuccess) {
+      const fetchTasks = async() => {
+        console.log("projectId :",projectId)
+        const response = await fetch(`/api/projects/${projectId}/task`)
+        const data = await response.json()
+        if (!response.ok) {
+          toast.error(data.error,{position:'top-center'})
+        }
+        console.log("fetched tasks : ",data.data)
+        setTasks(data.data)
+      }
+      fetchTasks();
+    }
+  },[detailsFetchedSuccess])
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewTask((prev) => ({ ...prev, [name]: value }));
@@ -172,6 +189,7 @@ const ProjectPage = () => {
 
   return (
     <>
+      {detailsFetchedSuccess && (
       <div className="flex flex-row p-3 justify-between">
         <div className="text-xl flex flex-row">
           <Folder size={24} /> {projectName}
@@ -186,11 +204,12 @@ const ProjectPage = () => {
           </Button>
         </div>
       </div>
+      )}
 
       {/* Add Task Modal */}
-      {showModal && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-md w-1/3">
+      {showModal && detailsFetchedSuccess && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-[999999]">
+          <div className="bg-white p-6 rounded-md w-1/3 z-[999999]">
             <h2 className="text-lg font-semibold mb-4">Add New Task</h2>
             <form onSubmit={(e) => e.preventDefault()}>
               <div className="mb-4">
@@ -270,6 +289,8 @@ const ProjectPage = () => {
       )}
 
       {/* Collapsible Section for To-do */}
+      {detailsFetchedSuccess && (
+      <>
       <div className="mr-3">
         <Collapsible.Root>
           <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
@@ -287,10 +308,10 @@ const ProjectPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map((task, index) => (
+                {tasks.filter(task => task.category === 'todo').map((task, index) => (
                   <TableRow key={index}>
                     <TableCell>{task.task}</TableCell>
-                    <TableCell>{task.description}</TableCell>
+                    <TableCell>{task.desc}</TableCell>
                     <TableCell>{task.assigned}</TableCell>
                     <TableCell>{task.deadline}</TableCell>
                     <TableCell>{task.priority}</TableCell>
@@ -325,6 +346,8 @@ const ProjectPage = () => {
           </Collapsible.Content>
         </Collapsible.Root>
       </div>
+      </>
+      )}
     </>
   );
 };

@@ -7,33 +7,51 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 export async function GET(request, { params }) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
-    const { id } = await params; 
-    const { data, error } = await supabase
+
+    const { id } = await params; // Get project ID from params
+    const userEmail = user.emailAddresses[0].emailAddress; // Current user's email
+
+    // Fetch members of the project
+    const { data: membersData, error: membersError } = await supabase
+      .from("members")
+      .select("email")
+      .eq("proj_id", id);
+
+    if (membersError) {
+      throw membersError;
+    }
+
+    // Check if current user's email exists in the members' list
+    const isMember = membersData.some((member) => member.email === userEmail);
+
+    if (!isMember) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
+    // Fetch project details if the user is authorized
+    const { data: projectData, error: projectError } = await supabase
       .from("project")
       .select(`
-        id, 
-        name, 
-        desc 
+        id,
+        name,
+        desc
       `)
       .eq("id", id)
       .single();
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        // Handle case where no project is found
+    if (projectError) {
+      if (projectError.code === "PGRST116") {
         return NextResponse.json({ error: "Project not found" }, { status: 404 });
       }
-      throw error;
     }
-    console.log(data);
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ projectData: projectData,membersData:membersData });
   } catch (error) {
-    console.error("Error fetching project by ID:", error.message);
+    console.error("Error fetching project or authorization:", error.message);
     return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
   }
 }
