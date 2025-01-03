@@ -19,10 +19,13 @@ import { Toaster, toast } from "react-hot-toast";
 
 const ProjectPage = () => {
   const { projectId } = useParams();
+  const [newEmail,setNewEmail] = useState('')
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showInviteModal,setShowInviteModal] = useState(false)
   const [detailsFetchedSuccess, setDetailsFetchedSuccess] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [invited,setInvited] =useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newTask, setNewTask] = useState({
     task: '',
@@ -96,6 +99,7 @@ const ProjectPage = () => {
     }));
   };
 
+
   const validateForm = () => {
     const newErrors = {};
     if (!newTask.task) newErrors.task = 'Task name is required';
@@ -140,9 +144,40 @@ const ProjectPage = () => {
     }
   };
 
+  const addEmail = () => {
+    if (newEmail.trim() && !invited.includes(newEmail.trim())) {
+      setInvited([...invited, newEmail.trim()]);
+      setNewEmail('');
+    }
+  }
+
+  const removeEmail = (email) => {
+    setInvited(invited.filter(e => e !== email));
+  }
+
+  const handleInvite = async() => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/invites`,{
+        method:'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body:JSON.stringify({invited : invited})
+      })
+      const data = await response.json();
+      if(!response.ok) {
+        toast.error(data.error,{position:'top-center'})
+      }
+    } catch(error) {
+      console.log("gogogog")
+    }
+  }
+
   if (loading) {
     return <div>Loading...</div>;
   }
+
+  
 
   return (
     <>
@@ -153,7 +188,7 @@ const ProjectPage = () => {
           </div>
           <div className="flex flex-row gap-4 justify-evenly">
             <Button variant="outline">Ask AI</Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowInviteModal(true)}>
               <User size={32} color="black" /> Invite
             </Button>
             <Button variant="outline" onClick={() => setShowModal(true)}>
@@ -262,6 +297,55 @@ const ProjectPage = () => {
         </div>
       )}
 
+      {showInviteModal && detailsFetchedSuccess && (
+          <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-[999999]">
+            <div className="bg-white p-6 rounded-md w-1/3 z-[999999]">
+              <h2 className="text-lg font-semibold mb-4">Send Invitations</h2>
+              <form onSubmit={(e) => e.preventDefault()}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700">Add Emails</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="Enter email"
+                      className="w-full p-2 border border-gray-300 rounded"
+                    />
+                    <Button onClick={addEmail}>Add</Button>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                {invited.map((email, index) => (
+                  <span
+                    key={index}
+                    className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-shadow duration-300 ease-in-out gap-2 m-1"
+                  >
+                    <span className="text-sm font-medium truncate">{email}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeEmail(email)}
+                      className="flex items-center justify-center w-5 h-5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full transition-colors duration-300 ease-in-out"
+                      aria-label={`Remove ${email}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                </div>
+
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleInvite}>Invite</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+      )}
+
       {detailsFetchedSuccess && (
         <>
         <div className="mr-3">
@@ -325,6 +409,6 @@ const ProjectPage = () => {
       <Toaster />
     </>
   );
-};
+}
 
 export default ProjectPage;
