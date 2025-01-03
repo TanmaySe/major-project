@@ -15,69 +15,19 @@ import {
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Toaster, toast } from "react-hot-toast"; 
+import { Toaster, toast } from "react-hot-toast";
 
 const ProjectPage = () => {
   const { projectId } = useParams();
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
-  const [detailsFetchedSuccess,setDetailsFetchedSuccess] = useState(false)
-  const [tasks, setTasks] = useState([
-    {
-      task: "Create Wireframes",
-      description: "Design the initial wireframes for the new feature",
-      assigned: "John Doe",
-      deadline: "2025-01-10",
-      priority: "High",
-    },
-    {
-      task: "Database Optimization",
-      description: "Optimize the database queries to improve performance",
-      assigned: "Jane Smith",
-      deadline: "2025-01-15",
-      priority: "Medium",
-    },
-    {
-      task: "Write Test Cases",
-      description: "Create detailed test cases for the user authentication module",
-      assigned: "Alex Johnson",
-      deadline: "2025-01-12",
-      priority: "High",
-    },
-    {
-      task: "Update Documentation",
-      description: "Revise and update project documentation for the API endpoints",
-      assigned: "Emily Davis",
-      deadline: "2025-01-20",
-      priority: "Low",
-    },
-    {
-      task: "UI Bug Fixes",
-      description: "Fix layout and responsiveness issues in the dashboard UI",
-      assigned: "Michael Brown",
-      deadline: "2025-01-08",
-      priority: "High",
-    },
-    {
-      task: "Prepare Presentation",
-      description: "Create a slide deck for the upcoming stakeholder meeting",
-      assigned: "Sophia Wilson",
-      deadline: "2025-01-18",
-      priority: "Medium",
-    },
-    {
-      task: "Code Review",
-      description: "Review the new code pushed by the team and suggest improvements",
-      assigned: "Chris Taylor",
-      deadline: "2025-01-14",
-      priority: "Low",
-    },
-  ]);
+  const [detailsFetchedSuccess, setDetailsFetchedSuccess] = useState(false);
+  const [tasks, setTasks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [newTask, setNewTask] = useState({
     task: '',
     description: '',
-    assigned: '',
+    assigned: [],
     deadline: '',
     priority: '',
   });
@@ -94,56 +44,63 @@ const ProjectPage = () => {
         }
         setProjectName(data.projectData.name);
         setMembers(data.membersData);
-        setDetailsFetchedSuccess(true)
+        setDetailsFetchedSuccess(true);
       } catch (error) {
-        toast.error(error.message,{position:'top-center'})
+        toast.error(error.message, { position: 'top-center' });
       } finally {
         setLoading(false);
       }
     };
 
-    // const fetchMembers = async () => {
-    //   try {
-    //     const response = await fetch(`/api/projects/${projectId}/members`);
-    //     if (!response.ok) {
-    //       throw new Error('Failed to fetch members');
-    //     }
-    //     const data = await response.json();
-    //     console.log(data);
-    //     setMembers(data.data);
-    //   } catch (error) {
-    //     console.error('Error fetching members:', error);
-    //   }
-    // };
-
     fetchProjectName();
-    // fetchMembers();
   }, [projectId]);
-  useEffect(()=>{
-    if(detailsFetchedSuccess) {
-      const fetchTasks = async() => {
-        console.log("projectId :",projectId)
-        const response = await fetch(`/api/projects/${projectId}/task`)
-        const data = await response.json()
-        if (!response.ok) {
-          toast.error(data.error,{position:'top-center'})
-        }
-        console.log("fetched tasks : ",data.data)
-        setTasks(data.data)
+
+  const fetchTasks = async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/task`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error);
       }
+      setTasks(data.data);
+    } catch (error) {
+      toast.error(error.message, { position: 'top-center' });
+    }
+  };
+  useEffect(() => {
+    if (detailsFetchedSuccess) {
+      
       fetchTasks();
     }
-  },[detailsFetchedSuccess])
+  }, [detailsFetchedSuccess]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewTask((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAssigneeChange = (e) => {
+    const selectedAssignee = e.target.value;
+    if (selectedAssignee && !newTask.assigned.includes(selectedAssignee)) {
+      setNewTask((prev) => ({
+        ...prev,
+        assigned: [...prev.assigned, selectedAssignee],
+      }));
+    }
+  };
+
+  const removeAssignee = (assignee) => {
+    setNewTask((prev) => ({
+      ...prev,
+      assigned: prev.assigned.filter((a) => a !== assignee),
+    }));
   };
 
   const validateForm = () => {
     const newErrors = {};
     if (!newTask.task) newErrors.task = 'Task name is required';
     if (!newTask.description) newErrors.description = 'Description is required';
-    if (!newTask.assigned) newErrors.assigned = 'Assigned person is required';
+    if (!newTask.assigned.length) newErrors.assigned = 'At least one assignee is required';
     if (!newTask.deadline) newErrors.deadline = 'Deadline is required';
     if (!newTask.priority) newErrors.priority = 'Priority is required';
     setErrors(newErrors);
@@ -166,20 +123,20 @@ const ProjectPage = () => {
         throw new Error('Failed to create task');
       }
 
-    //   const data = await response.json();
-    //   console.log(data);
-    //   setTasks((prevTasks) => [...prevTasks, data.task]);
-      setShowModal(false);
       toast.success("Task created successfully!", { position: "top-center" });
+      // setTasks((prevTasks) => [...prevTasks, newTask]);
+      console.log(tasks);
+      setShowModal(false);
       setNewTask({
         task: '',
         description: '',
-        assigned: '',
+        assigned: [],
         deadline: '',
         priority: '',
       });
+      fetchTasks();      
     } catch (error) {
-      console.error('Error adding task:', error);
+      toast.error(error.message, { position: "top-center" });
     }
   };
 
@@ -190,23 +147,22 @@ const ProjectPage = () => {
   return (
     <>
       {detailsFetchedSuccess && (
-      <div className="flex flex-row p-3 justify-between">
-        <div className="text-xl flex flex-row">
-          <Folder size={24} /> {projectName}
+        <div className="flex flex-row p-3 justify-between">
+          <div className="text-xl flex flex-row">
+            <Folder size={24} /> {projectName}
+          </div>
+          <div className="flex flex-row gap-4 justify-evenly">
+            <Button variant="outline">Ask AI</Button>
+            <Button variant="outline">
+              <User size={32} color="black" /> Invite
+            </Button>
+            <Button variant="outline" onClick={() => setShowModal(true)}>
+              Add Task
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-row gap-4 justify-evenly">
-          <Button variant="outline">Ask AI</Button>
-          <Button variant="outline">
-            <User size={32} color="black" /> Invite
-          </Button>
-          <Button variant="outline" onClick={() => setShowModal(true)}>
-            Add Task
-          </Button>
-        </div>
-      </div>
       )}
 
-      {/* Add Task Modal */}
       {showModal && detailsFetchedSuccess && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-[999999]">
           <div className="bg-white p-6 rounded-md w-1/3 z-[999999]">
@@ -237,19 +193,37 @@ const ProjectPage = () => {
               <div className="mb-4">
                 <label className="block">Assigned</label>
                 <select
-                  name="assigned"
-                  value={newTask.assigned}
-                  onChange={handleChange}
+                  onChange={handleAssigneeChange}
                   className="w-full p-2 border border-gray-300 rounded"
                 >
                   <option value="">Select Member</option>
-                  {members.map((member) => (
-                    <option key={member.id} value={member.name}>
-                      {member.name}
-                    </option>
-                  ))}
+                  {members
+                    .filter((member) => !newTask.assigned.includes(member.name))
+                    .map((member) => (
+                      <option key={member.id} value={member.name}>
+                        {member.name}
+                      </option>
+                    ))}
                 </select>
                 {errors.assigned && <span className="text-red-500 text-sm">{errors.assigned}</span>}
+
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {newTask.assigned.map((assignee, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center bg-blue-500 text-white px-3 py-1 rounded-full"
+                    >
+                      <span>{assignee}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAssignee(assignee)}
+                        className="ml-2 text-red-500 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block">Deadline</label>
@@ -288,41 +262,40 @@ const ProjectPage = () => {
         </div>
       )}
 
-      {/* Collapsible Section for To-do */}
       {detailsFetchedSuccess && (
-      <>
-      <div className="mr-3">
-        <Collapsible.Root>
-          <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
-            To-do
-          </Collapsible.Trigger>
-          <Collapsible.Content>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead><LayoutList /> Task</TableHead>
-                  <TableHead><NotebookPen /> Description</TableHead>
-                  <TableHead><UsersRound /> Assigned</TableHead>
-                  <TableHead><CalendarDays /> Deadline</TableHead>
-                  <TableHead><ShieldQuestion /> Priority</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tasks.filter(task => task.category === 'todo').map((task, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{task.task}</TableCell>
-                    <TableCell>{task.desc}</TableCell>
-                    <TableCell>{task.assigned}</TableCell>
-                    <TableCell>{task.deadline}</TableCell>
-                    <TableCell>{task.priority}</TableCell>
+        <>
+        <div className="mr-3">
+          <Collapsible.Root>
+            <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
+              To-do
+            </Collapsible.Trigger>
+            <Collapsible.Content>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead><LayoutList /> Task</TableHead>
+                    <TableHead><NotebookPen /> Description</TableHead>
+                    <TableHead><UsersRound /> Assigned</TableHead>
+                    <TableHead><CalendarDays /> Deadline</TableHead>
+                    <TableHead><ShieldQuestion /> Priority</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Collapsible.Content>
-        </Collapsible.Root>
-      </div>
-      <div className="mr-3">
+                </TableHeader>
+                <TableBody>
+                  {tasks.filter(task => task.category === 'todo').map((task, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{task.task}</TableCell>
+                      <TableCell>{task.desc}</TableCell>
+                      <TableCell>{task.assigned ? task.assigned.join(','): task.assigned}</TableCell>
+                      <TableCell>{task.deadline}</TableCell>
+                      <TableCell>{task.priority}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Collapsible.Content>
+          </Collapsible.Root>
+        </div>
+        <div className="mr-3">
         <Collapsible.Root>
           <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
             In Progress
@@ -347,7 +320,9 @@ const ProjectPage = () => {
         </Collapsible.Root>
       </div>
       </>
+        
       )}
+      <Toaster />
     </>
   );
 };
