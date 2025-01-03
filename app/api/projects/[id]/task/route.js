@@ -18,6 +18,7 @@ export async function POST(request,{params}) {
     if (!task || !description || !assigned || !deadline || !priority  ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+    console.log(task,description,assigned,deadline,priority );
 
     // Insert task into the 'task' table in Supabase
     const { data, error } = await supabase
@@ -29,6 +30,7 @@ export async function POST(request,{params}) {
           deadline,
           priority,
           proj_id:id,
+          assigned:assigned,
           created_at: new Date(), // Optional: automatically use the current timestamp
         }
       ]);

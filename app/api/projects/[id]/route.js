@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
     // Fetch members of the project
     const { data: membersData, error: membersError } = await supabase
       .from("members")
-      .select("email")
+      .select("id,name,email")
       .eq("proj_id", id);
 
     if (membersError) {
