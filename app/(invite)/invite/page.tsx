@@ -45,7 +45,10 @@ const InvitePage = () => {
 
     if (!user) {
         return (
-            <SignIn />
+            <div className="flex items-center justify-center h-screen">
+                <SignIn fallbackRedirectUrl={`/invite?token=${token}`} signUpFallbackRedirectUrl={`/invite?token=${token}`} />
+            </div>
+            
         );
     }
 
