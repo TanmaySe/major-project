@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { SignIn, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 const InvitePage = () => {
     const params = useSearchParams();
@@ -33,6 +34,29 @@ const InvitePage = () => {
             validateInvite();
         }
     }, [token, user]);
+
+    const handleAccept = async() => {
+        console.log("39")
+        try{
+            console.log("41")
+        const response = await fetch(`/api/projects/${token}/invites`, {
+            method:'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body:JSON.stringify({firstName:user?.firstName})
+        })
+        console.log("49")
+        const data = await response.json();
+        if(!response.ok) {
+            toast.error(data.error,{position:'top-center'})
+            return;
+        }
+        toast.success("Invitation accepted",{position:'top-center'})
+    }catch(error) {
+        console.log(error.message)
+    }
+    }
 
 
     if (!token) {
@@ -68,7 +92,7 @@ const InvitePage = () => {
                         <p><strong>You are invited for :</strong> {data.proj_id}</p>
                     </div>
                     <div className="flex justify-between mt-6">
-                        <Button variant="accept">
+                        <Button variant="accept" onClick={handleAccept}>
                             Accept
                         </Button>
                         <Button variant="reject">

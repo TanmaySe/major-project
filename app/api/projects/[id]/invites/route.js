@@ -93,3 +93,45 @@ export async function GET(request, { params }) {
 }
 
 }
+
+export async function PATCH(request,{ params }) {
+  try{
+    console.log("99")
+  const user = await currentUser()
+  const { id } = await params
+  const body = await request.json()
+  const { firstName } = body
+  if(!user) {
+    console.log("105")
+    return NextResponse.json({error:"User not autenticated"},{status:401})
+  }
+  const { data, error } = await supabase.from("invites").select("*").eq('invite_id',id)
+  console.log("109")
+  if(error) {
+    console.log("111")
+    return NextResponse.json({error:error.message},{status:500})
+  }
+  if(data.length === 0) {
+    return NextResponse.json({error:"Invalid invitation"},{status:400})
+  }
+
+  let { data:d, error:e } = await supabase
+  .rpc('handle_invitation', {
+    m_email:data[0].email, 
+    m_name:firstName, 
+    m_role:"member", 
+    p_invite_id:id, 
+    proj_id:data[0].proj_id
+  })
+  
+  if(e) {
+    console.log("error from supabase : ",e)
+    return NextResponse.json({error:"Issue in procedure execution"},{status:500})
+  }
+  return NextResponse.json({data:d},{status:200})
+}catch(error) {
+  return NextResponse.json({error:error.message},{status:500})
+}
+  
+
+}
