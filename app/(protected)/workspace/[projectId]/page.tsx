@@ -36,6 +36,56 @@ const ProjectPage = () => {
   });
   const [members, setMembers] = useState([]);
   const [errors, setErrors] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+const [selectedTask, setSelectedTask] = useState(null);
+
+// Open modal for editing
+const openEditModal = (task) => {
+  setSelectedTask(task);
+  setNewTask({
+    task: task.task,
+    description: task.desc,
+    assigned: task.assigned || [],
+    deadline: task.deadline,
+    priority: task.priority,
+  });
+  setIsEditing(true);
+  setShowModal(true);
+};
+
+// Handle task update
+const handleUpdateTask = async () => {
+  if (!validateForm()) return;
+
+  try {
+    const response = await fetch(`/api/projects/${projectId}/task/${selectedTask.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newTask),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update task');
+    }
+
+    toast.success("Task updated successfully!", { position: "top-center" });
+    setShowModal(false);
+    setNewTask({
+      task: '',
+      description: '',
+      assigned: [],
+      deadline: '',
+      priority: '',
+    });
+    setIsEditing(false);
+    setSelectedTask(null);
+    fetchTasks();
+  } catch (error) {
+    toast.error(error.message, { position: "top-center" });
+  }
+};
 
   useEffect(() => {
     const fetchProjectName = async () => {
@@ -290,7 +340,9 @@ const ProjectPage = () => {
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddTask}>Add Task</Button>
+                <Button onClick={isEditing ? handleUpdateTask : handleAddTask}>
+                  {isEditing ? 'Update Task' : 'Add Task'}
+                </Button>
               </div>
             </form>
           </div>
@@ -365,13 +417,18 @@ const ProjectPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tasks.filter(task => task.category === 'todo').map((task, index) => (
+                  {tasks.map((task, index) => (
                     <TableRow key={index}>
                       <TableCell>{task.task}</TableCell>
                       <TableCell>{task.desc}</TableCell>
-                      <TableCell>{task.assigned ? task.assigned.join(','): task.assigned}</TableCell>
+                      <TableCell>{task.assigned ? task.assigned.join(',') : task.assigned}</TableCell>
                       <TableCell>{task.deadline}</TableCell>
                       <TableCell>{task.priority}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" onClick={() => openEditModal(task)}>
+                          Edit
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
