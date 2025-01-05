@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "react-hot-toast";
+import Loading from "./Loading";
 
 const Sidebar = () => {
   const router = useRouter();
@@ -37,11 +38,13 @@ const Sidebar = () => {
   const [projectName, setProjectName] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading,setIsLoading] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
 
   // Existing fetch and handler functions remain the same
   const fetchProjects = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/projects", {
         method: "GET",
       });
@@ -51,6 +54,8 @@ const Sidebar = () => {
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch projects.");
+    }finally{
+      setIsLoading(false);
     }
   };
 
@@ -158,6 +163,7 @@ const Sidebar = () => {
         </div>
 
         {/* Projects List */}
+        {isLoading ? <Loading/> : 
         <div className="flex flex-col mt-4 px-2">
           {projects.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">No projects found.</p>
@@ -192,7 +198,7 @@ const Sidebar = () => {
             ))
           )}
         </div>
-
+        }
         {/* Create Project Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[425px] z-[99999]">

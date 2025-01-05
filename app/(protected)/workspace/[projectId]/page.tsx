@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from "react-hot-toast";
+import Loading from '../_components/Loading';
 
 const ProjectPage = () => {
   const { projectId } = useParams();
@@ -262,11 +263,11 @@ const ProjectPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="animate-pulse text-xl text-gray-600">Loading...</div>
-      </div>
+      <Loading />
     );
   }
+  
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">

@@ -3,6 +3,7 @@
 import { useConvexAuth } from "convex/react";
 import { redirect } from "next/navigation";
 import Sidebar from "./_components/Sidebar";
+import Loading from "./_components/Loading";
 
 const WorkspaceLayout = ({
     children
@@ -12,9 +13,7 @@ const WorkspaceLayout = ({
     const {isAuthenticated,isLoading} = useConvexAuth()
     if(isLoading){
         return (
-            <div className="h-full flex items-center justify-center">
-                Loading this page for you...
-            </div>
+            <Loading/>
         );
     }
     if(!isAuthenticated){
