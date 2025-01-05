@@ -337,7 +337,15 @@ const handleUpdateTask = async () => {
                 {errors.priority && <span className="text-red-500 text-sm">{errors.priority}</span>}
               </div>
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setShowModal(false)}>
+                <Button variant="outline" onClick={() => {setShowModal(false);
+                  setNewTask({
+                        task: '',
+                        description: '',
+                        assigned: [],
+                        deadline: '',
+                        priority: '',
+                      });
+                }}>
                   Cancel
                 </Button>
                 <Button onClick={isEditing ? handleUpdateTask : handleAddTask}>
