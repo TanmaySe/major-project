@@ -1,7 +1,7 @@
 'use client';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, UsersRound,Edit, Trash2  } from "lucide-react";
+import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, UsersRound, Edit, Trash2, Plus, ChevronDown, ChevronRight, CheckCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,20 +12,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from "react-hot-toast";
 
 const ProjectPage = () => {
   const { projectId } = useParams();
-  const [newEmail,setNewEmail] = useState('')
+  const [newEmail, setNewEmail] = useState('');
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showInviteModal,setShowInviteModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [detailsFetchedSuccess, setDetailsFetchedSuccess] = useState(false);
   const [tasks, setTasks] = useState([]);
-  const [invited,setInvited] =useState<string[]>([]);
+  const [invited, setInvited] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [newTask, setNewTask] = useState({
     task: '',
@@ -37,62 +38,72 @@ const ProjectPage = () => {
   const [members, setMembers] = useState([]);
   const [errors, setErrors] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-const [selectedTask, setSelectedTask] = useState(null);
-const [showDeleteModal,setShowDeleteModal] = useState(false);
-const [delTaskId,setDelTaskId] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [delTaskId, setDelTaskId] = useState(null);
 
-// Open modal for editing
-const openEditModal = (task) => {
-  setSelectedTask(task);
-  setNewTask({
-    task: task.task,
-    description: task.desc,
-    assigned: task.assigned || [],
-    deadline: task.deadline,
-    priority: task.priority,
-  });
-  setIsEditing(true);
-  setShowModal(true);
-};
+  // Priority color mapping
+  const getPriorityColor = (priority) => {
+    const colors = {
+      High: 'bg-red-100 text-red-800',
+      Medium: 'bg-yellow-100 text-yellow-800',
+      Low: 'bg-green-100 text-green-800'
+    };
+    return colors[priority] || 'bg-gray-100 text-gray-800';
+  };
 
-const openDeleteModal = (task) =>{
-  setShowDeleteModal(true);
-  setDelTaskId(task.id);
-}
-
-// Handle task update
-const handleUpdateTask = async () => {
-  if (!validateForm()) return;
-
-  try {
-    const response = await fetch(`/api/projects/${projectId}/task/${selectedTask.id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newTask),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update task');
-    }
-
-    toast.success("Task updated successfully!", { position: "top-center" });
-    setShowModal(false);
+  // Open modal for editing
+  const openEditModal = (task) => {
+    setSelectedTask(task);
     setNewTask({
-      task: '',
-      description: '',
-      assigned: [],
-      deadline: '',
-      priority: '',
+      task: task.task,
+      description: task.desc,
+      assigned: task.assigned || [],
+      deadline: task.deadline,
+      priority: task.priority,
     });
-    setIsEditing(false);
-    setSelectedTask(null);
-    fetchTasks();
-  } catch (error) {
-    toast.error(error.message, { position: "top-center" });
-  }
-};
+    setIsEditing(true);
+    setShowModal(true);
+  };
+
+  const openDeleteModal = (task) => {
+    setShowDeleteModal(true);
+    setDelTaskId(task.id);
+  };
+
+  // Handle task update
+  const handleUpdateTask = async () => {
+    if (!validateForm()) return;
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/task/${selectedTask.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTask),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      toast.success("Task updated successfully!", { position: "top-center" });
+      setShowModal(false);
+      setNewTask({
+        task: '',
+        description: '',
+        assigned: [],
+        deadline: '',
+        priority: '',
+      });
+      setIsEditing(false);
+      setSelectedTask(null);
+      fetchTasks();
+    } catch (error) {
+      toast.error(error.message, { position: "top-center" });
+    }
+  };
 
   useEffect(() => {
     const fetchProjectName = async () => {
@@ -127,9 +138,9 @@ const handleUpdateTask = async () => {
       toast.error(error.message, { position: 'top-center' });
     }
   };
+
   useEffect(() => {
     if (detailsFetchedSuccess) {
-      
       fetchTasks();
     }
   }, [detailsFetchedSuccess]);
@@ -155,7 +166,6 @@ const handleUpdateTask = async () => {
       assigned: prev.assigned.filter((a) => a !== assignee),
     }));
   };
-
 
   const validateForm = () => {
     const newErrors = {};
@@ -185,8 +195,6 @@ const handleUpdateTask = async () => {
       }
 
       toast.success("Task created successfully!", { position: "top-center" });
-      // setTasks((prevTasks) => [...prevTasks, newTask]);
-      console.log(tasks);
       setShowModal(false);
       setNewTask({
         task: '',
@@ -195,8 +203,7 @@ const handleUpdateTask = async () => {
         deadline: '',
         priority: ''
       });
-      
-      fetchTasks();      
+      fetchTasks();
     } catch (error) {
       toast.error(error.message, { position: "top-center" });
     }
@@ -207,333 +214,423 @@ const handleUpdateTask = async () => {
       setInvited([...invited, newEmail.trim()]);
       setNewEmail('');
     }
-  }
+  };
 
   const removeEmail = (email) => {
     setInvited(invited.filter(e => e !== email));
-  }
+  };
 
-  const handleInvite = async() => {
+  const handleInvite = async () => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/invites`,{
-        method:'POST',
+      const response = await fetch(`/api/projects/${projectId}/invites`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body:JSON.stringify({invited : invited})
-      })
+        body: JSON.stringify({ invited: invited })
+      });
       const data = await response.json();
-      if(!response.ok) {
-        toast.error(data.error,{position:'top-center'})
+      if (!response.ok) {
+        toast.error(data.error, { position: 'top-center' });
       }
-    } catch(error) {
-      console.log("gogogog")
+    } catch (error) {
+      console.log("Error sending invites:", error);
     }
-  }
-  const handleDeleteTask = async()=>{
+  };
+
+  const handleDeleteTask = async () => {
     try {
-      console.log(delTaskId);
-      const response = await fetch(`/api/projects/${projectId}/task/${delTaskId}`,{
-        method:'DELETE',
+      const response = await fetch(`/api/projects/${projectId}/task/${delTaskId}`, {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-      })
+      });
       const data = await response.json();
       setShowDeleteModal(false);
       setDelTaskId(null);
-      if(!response.ok) {
-        toast.error(data.error,{position:'top-center'});
-      }else{
-        toast.success("Task Deleted Successfully !",{position:'top-center'});
+      if (!response.ok) {
+        toast.error(data.error, { position: 'top-center' });
+      } else {
+        toast.success("Task Deleted Successfully!", { position: 'top-center' });
         fetchTasks();
-      }      
-      
+      }
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="animate-pulse text-xl text-gray-600">Loading...</div>
+      </div>
+    );
   }
 
-  
-
   return (
-    <>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {detailsFetchedSuccess && (
-        <div className="flex flex-row p-3 justify-between">
-          <div className="text-xl flex flex-row">
-            <Folder size={24} /> {projectName}
-          </div>
-          <div className="flex flex-row gap-4 justify-evenly">
-            <Button variant="outline">Ask AI</Button>
-            <Button variant="outline" onClick={() => setShowInviteModal(true)}>
-              <User size={32} color="black" /> Invite
-            </Button>
-            <Button variant="outline" onClick={() => setShowModal(true)}>
-              Add Task
-            </Button>
-          </div>
-        </div>
-      )}
-
-{showDeleteModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[999999]">
-          <div className="bg-white p-6 rounded shadow-md w-96 z-[999999]">
-            <h2 className="text-lg font-semibold mb-4">
-              Are you sure you want to delete this project?
-            </h2>
-            <div className="flex justify-end gap-4">
+        <div className="p-6 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Folder className="w-6 h-6 text-blue-600" />
+              </div>
+              <h1 className="text-2xl font-semibold text-gray-800">{projectName}</h1>
+            </div>
+            <div className="flex space-x-4">
               <Button
                 variant="outline"
-                onClick={() => {setShowDeleteModal(false);setDelTaskId(null)}}
+                className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
               >
-                No
+                <ShieldQuestion className="w-4 h-4" />
+                <span>Ask AI</span>
               </Button>
               <Button
-                variant="solid"
-                color="red"
-                onClick={()=> handleDeleteTask()}
+                variant="outline"
+                className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
+                onClick={() => setShowInviteModal(true)}
               >
-                Yes
+                <User className="w-4 h-4" />
+                <span>Invite</span>
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
+                onClick={() => setShowModal(true)}
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Task</span>
               </Button>
             </div>
           </div>
+
+          <div className="space-y-4">
+            {['To-do', 'In Progress', 'Done'].map((section) => (
+              <Card key={section} className="overflow-hidden">
+                <Collapsible.Root>
+                  <Collapsible.Trigger className="w-full">
+                    <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${
+                          section === 'To-do' ? 'bg-purple-100 text-purple-600' :
+                          section === 'In Progress' ? 'bg-blue-100 text-blue-600' :
+                          'bg-green-100 text-green-600'
+                        }`}>
+                          {section === 'To-do' ? <LayoutList className="w-4 h-4" /> :
+                           section === 'In Progress' ? <NotebookPen className="w-4 h-4" /> :
+                           <CheckCircle className="w-4 h-4" />}
+                        </div>
+                        <h2 className="text-lg font-medium text-gray-800">{section}</h2>
+                      </div>
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </Collapsible.Trigger>
+                  <Collapsible.Content>
+                    <CardContent className="p-4">
+                      {section === 'To-do' ? (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-gray-50">
+                                <TableHead className="font-semibold">Task</TableHead>
+                                <TableHead className="font-semibold">Description</TableHead>
+                                <TableHead className="font-semibold">Assigned</TableHead>
+                                <TableHead className="font-semibold">Deadline</TableHead>
+                                <TableHead className="font-semibold">Priority</TableHead>
+                                <TableHead className="font-semibold">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {tasks.map((task, index) => (
+                                <TableRow key={index} className="hover:bg-gray-50">
+                                  <TableCell className="font-medium">{task.task}</TableCell>
+                                  <TableCell>{task.desc}</TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                      {task.assigned && task.assigned.map((assignee, idx) => (
+                                        <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                          {assignee}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center space-x-2">
+                                      <CalendarDays className="w-4 h-4 text-gray-400" />
+                                      <span>{task.deadline}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge className={getPriorityColor(task.priority)}>
+                                      {task.priority}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex space-x-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openEditModal(task)}
+                                        className="hover:bg-gray-100"
+                                      >
+                                        <Edit className="w-4 h-4 text-gray-600" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openDeleteModal(task)}
+                                        className="hover:bg-red-100"
+                                      >
+                                        <Trash2 className="w-4 h-4 text-red-600" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-gray-500 text-sm">
+                          {section === 'In Progress' ? 'In progress tasks will appear here' : 'Completed tasks will appear here'}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Collapsible.Content>
+                </Collapsible.Root>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
-      {showModal && detailsFetchedSuccess && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-[999999]">
-          <div className="bg-white p-6 rounded-md w-1/3 z-[999999]">
-            <h2 className="text-lg font-semibold mb-4">Add New Task</h2>
-            <form onSubmit={(e) => e.preventDefault()}>
-              <div className="mb-4">
-                <label className="block">Task</label>
-                <input
-                  type="text"
-                  name="task"
-                  value={newTask.task}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded"
-                />
-                {errors.task && <span className="text-red-500 text-sm">{errors.task}</span>}
-              </div>
-              <div className="mb-4">
-                <label className="block">Description</label>
-                <input
-                  type="text"
-                  name="description"
-                  value={newTask.description}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded"
-                />
-                {errors.description && <span className="text-red-500 text-sm">{errors.description}</span>}
-              </div>
-              <div className="mb-4">
-                <label className="block">Assigned</label>
-                <select
-                  onChange={handleAssigneeChange}
-                  className="w-full p-2 border border-gray-300 rounded"
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <Card className="w-full max-w-md bg-white rounded-lg shadow-xl">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Confirm Deletion
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this task? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  className="border-gray-200 hover:bg-gray-50"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDelTaskId(null);
+                  }}
                 >
-                  <option value="">Select Member</option>
-                  {members
-                    .filter((member) => !newTask.assigned.includes(member.name))
-                    .map((member) => (
-                      <option key={member.id} value={member.name}>
-                        {member.name}
-                      </option>
-                    ))}
-                </select>
-                {errors.assigned && <span className="text-red-500 text-sm">{errors.assigned}</span>}
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => handleDeleteTask()}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {newTask.assigned.map((assignee, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center bg-blue-500 text-white px-3 py-1 rounded-full"
-                    >
-                      <span>{assignee}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeAssignee(assignee)}
-                        className="ml-2 text-red-500 hover:text-red-700"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <Card className="w-full max-w-lg bg-white rounded-lg shadow-xl">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                {isEditing ? 'Edit Task' : 'Add New Task'}
+              </h2>
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Task</label>
+                  <input
+                    type="text"
+                    name="task"
+                    value={newTask.task}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {errors.task && <span className="text-red-500 text-sm mt-1">{errors.task}</span>}
                 </div>
-              </div>
-              <div className="mb-4">
-                <label className="block">Deadline</label>
-                <input
-                  type="date"
-                  name="deadline"
-                  value={newTask.deadline}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded"
-                />
-                {errors.deadline && <span className="text-red-500 text-sm">{errors.deadline}</span>}
-              </div>
-              <div className="mb-4">
-                <label className="block">Priority</label>
-                <select
-                  name="priority"
-                  value={newTask.priority}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Priority</option>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-                {errors.priority && <span className="text-red-500 text-sm">{errors.priority}</span>}
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => {setShowModal(false);
-                  setNewTask({
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <input
+                    type="text"
+                    name="description"
+                    value={newTask.description}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {errors.description && <span className="text-red-500 text-sm mt-1">{errors.description}</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned</label>
+                  <select
+                    onChange={handleAssigneeChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Member</option>
+                    {members
+                      .filter((member) => !newTask.assigned.includes(member.name))
+                      .map((member) => (
+                        <option key={member.id} value={member.name}>
+                          {member.name}
+                        </option>
+                      ))}
+                  </select>
+                  {errors.assigned && <span className="text-red-500 text-sm mt-1">{errors.assigned}</span>}
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newTask.assigned.map((assignee, index) => (
+                      <Badge
+                        key={index}
+                        className="bg-blue-50 text-blue-700 border-blue-200 flex items-center space-x-1"
+                      >
+                        <span>{assignee}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAssignee(assignee)}
+                          className="ml-1 hover:text-red-500"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                  <input
+                    type="date"
+                    name="deadline"
+                    value={newTask.deadline}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {errors.deadline && <span className="text-red-500 text-sm mt-1">{errors.deadline}</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    name="priority"
+                    value={newTask.priority}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Priority</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                  {errors.priority && <span className="text-red-500 text-sm mt-1">{errors.priority}</span>}
+                </div>
+
+                <div className="flex justify-end space-x-4 mt-6">
+                  <Button
+                    variant="outline"
+                    className="border-gray-200 hover:bg-gray-50"
+                    onClick={() => {
+                      setShowModal(false);
+                      setNewTask({
                         task: '',
                         description: '',
                         assigned: [],
                         deadline: '',
                         priority: '',
                       });
-                }}>
-                  Cancel
-                </Button>
-                <Button onClick={isEditing ? handleUpdateTask : handleAddTask}>
-                  {isEditing ? 'Update Task' : 'Add Task'}
-                </Button>
-              </div>
-            </form>
-          </div>
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={isEditing ? handleUpdateTask : handleAddTask}
+                  >
+                    {isEditing ? 'Update Task' : 'Add Task'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Card>
         </div>
       )}
 
-      {showInviteModal && detailsFetchedSuccess && (
-          <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-[999999]">
-            <div className="bg-white p-6 rounded-md w-1/3 z-[999999]">
-              <h2 className="text-lg font-semibold mb-4">Send Invitations</h2>
-              <form onSubmit={(e) => e.preventDefault()}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700">Add Emails</label>
-                  <div className="flex items-center space-x-2">
+      {showInviteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <Card className="w-full max-w-lg bg-white rounded-lg shadow-xl">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">Send Invitations</h2>
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Add Emails</label>
+                  <div className="flex space-x-2">
                     <input
                       type="text"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="Enter email"
-                      className="w-full p-2 border border-gray-300 rounded"
+                      className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    <Button onClick={addEmail}>Add</Button>
+                    <Button
+                      onClick={addEmail}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Add
+                    </Button>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                {invited.map((email, index) => (
-                  <span
-                    key={index}
-                    className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-shadow duration-300 ease-in-out gap-2 m-1"
-                  >
-                    <span className="text-sm font-medium truncate">{email}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeEmail(email)}
-                      className="flex items-center justify-center w-5 h-5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full transition-colors duration-300 ease-in-out"
-                      aria-label={`Remove ${email}`}
+                <div className="flex flex-wrap gap-2">
+                  {invited.map((email, index) => (
+                    <Badge
+                      key={index}
+                      className="bg-blue-50 text-blue-700 border-blue-200 flex items-center space-x-1"
                     >
-                      ✕
-                    </button>
-                  </span>
-                ))}
+                      <span>{email}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeEmail(email)}
+                        className="ml-1 hover:text-red-500"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
 
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                <div className="flex justify-end space-x-4 mt-6">
+                  <Button
+                    variant="outline"
+                    className="border-gray-200 hover:bg-gray-50"
+                    onClick={() => setShowInviteModal(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleInvite}>Invite</Button>
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleInvite}
+                  >
+                    Send Invites
+                  </Button>
                 </div>
               </form>
             </div>
-          </div>
-      )}
-
-      {detailsFetchedSuccess && (
-        <>
-        <div className="mr-3">
-          <Collapsible.Root>
-            <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
-              To-do
-            </Collapsible.Trigger>
-            <Collapsible.Content>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead><LayoutList /> Task</TableHead>
-                    <TableHead><NotebookPen /> Description</TableHead>
-                    <TableHead><UsersRound /> Assigned</TableHead>
-                    <TableHead><CalendarDays /> Deadline</TableHead>
-                    <TableHead><ShieldQuestion /> Priority</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tasks.map((task, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{task.task}</TableCell>
-                      <TableCell>{task.desc}</TableCell>
-                      <TableCell>{task.assigned ? task.assigned.join(',') : task.assigned}</TableCell>
-                      <TableCell>{task.deadline}</TableCell>
-                      <TableCell>{task.priority}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" onClick={() => openEditModal(task)}>
-                          {/* Edit */}
-                          <Edit size={16} /> 
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Trash2 size={16} color='red' onClick={()=>openDeleteModal(task)} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Collapsible.Content>
-          </Collapsible.Root>
+          </Card>
         </div>
-        <div className="mr-3">
-        <Collapsible.Root>
-          <Collapsible.Trigger className="bg-gray-100 mr-3 ml-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
-            In Progress
-          </Collapsible.Trigger>
-          <Collapsible.Content className="bg-gray-200 ml-3 p-2 rounded-md mb-3 text-muted-foreground">
-            <p>In progress task 1</p>
-            <p>In progress task 2</p>
-          </Collapsible.Content>
-        </Collapsible.Root>
-      </div>
-
-      {/* Collapsible Section for Done */}
-      <div className="mr-3">
-        <Collapsible.Root>
-          <Collapsible.Trigger className="bg-gray-100 ml-3 mr-3 p-2 rounded-md mb-3 text-muted-foreground cursor-pointer w-full text-left">
-            Done
-          </Collapsible.Trigger>
-          <Collapsible.Content className="bg-gray-200 ml-3 p-2 rounded-md mb-3 text-muted-foreground">
-            <p>Done task 1</p>
-            <p>Done task 2</p>
-          </Collapsible.Content>
-        </Collapsible.Root>
-      </div>
-      </>
-        
       )}
+
       <Toaster />
-    </>
+    </div>
   );
-}
+};
 
 export default ProjectPage;
