@@ -128,7 +128,7 @@ export async function PATCH(request,{ params }) {
     console.log("error from supabase : ",e)
     return NextResponse.json({error:"Issue in procedure execution"},{status:500})
   }
-  return NextResponse.json({data:d},{status:200})
+  return NextResponse.json({data:data[0].proj_id},{status:200})
 }catch(error) {
   return NextResponse.json({error:error.message},{status:500})
 }

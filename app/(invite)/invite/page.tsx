@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { SignIn, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ const InvitePage = () => {
     const params = useSearchParams();
     const token = params.get("token");
     const { user } = useUser();
+    const router = useRouter()
     const [data,setData] = useState(null)
     const [error,setError] = useState(null)
     useEffect(() => {
@@ -52,7 +53,7 @@ const InvitePage = () => {
             toast.error(data.error,{position:'top-center'})
             return;
         }
-        toast.success("Invitation accepted",{position:'top-center'})
+        router.push(`/workspace/${data?.data}`)
     }catch(error) {
         console.log(error.message)
     }
