@@ -1,7 +1,7 @@
 'use client';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, UsersRound } from "lucide-react";
+import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, UsersRound,Edit, Trash2  } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -38,6 +38,8 @@ const ProjectPage = () => {
   const [errors, setErrors] = useState({});
   const [isEditing, setIsEditing] = useState(false);
 const [selectedTask, setSelectedTask] = useState(null);
+const [showDeleteModal,setShowDeleteModal] = useState(false);
+const [delTaskId,setDelTaskId] = useState(null);
 
 // Open modal for editing
 const openEditModal = (task) => {
@@ -52,6 +54,11 @@ const openEditModal = (task) => {
   setIsEditing(true);
   setShowModal(true);
 };
+
+const openDeleteModal = (task) =>{
+  setShowDeleteModal(true);
+  setDelTaskId(task.id);
+}
 
 // Handle task update
 const handleUpdateTask = async () => {
@@ -186,8 +193,9 @@ const handleUpdateTask = async () => {
         description: '',
         assigned: [],
         deadline: '',
-        priority: '',
+        priority: ''
       });
+      
       fetchTasks();      
     } catch (error) {
       toast.error(error.message, { position: "top-center" });
@@ -222,6 +230,29 @@ const handleUpdateTask = async () => {
       console.log("gogogog")
     }
   }
+  const handleDeleteTask = async()=>{
+    try {
+      console.log(delTaskId);
+      const response = await fetch(`/api/projects/${projectId}/task/${delTaskId}`,{
+        method:'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      const data = await response.json();
+      setShowDeleteModal(false);
+      setDelTaskId(null);
+      if(!response.ok) {
+        toast.error(data.error,{position:'top-center'});
+      }else{
+        toast.success("Task Deleted Successfully !",{position:'top-center'});
+        fetchTasks();
+      }      
+      
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   if (loading) {
     return <div>Loading...</div>;
@@ -244,6 +275,31 @@ const handleUpdateTask = async () => {
             <Button variant="outline" onClick={() => setShowModal(true)}>
               Add Task
             </Button>
+          </div>
+        </div>
+      )}
+
+{showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[999999]">
+          <div className="bg-white p-6 rounded shadow-md w-96 z-[999999]">
+            <h2 className="text-lg font-semibold mb-4">
+              Are you sure you want to delete this project?
+            </h2>
+            <div className="flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={() => {setShowDeleteModal(false);setDelTaskId(null)}}
+              >
+                No
+              </Button>
+              <Button
+                variant="solid"
+                color="red"
+                onClick={()=> handleDeleteTask()}
+              >
+                Yes
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -434,8 +490,12 @@ const handleUpdateTask = async () => {
                       <TableCell>{task.priority}</TableCell>
                       <TableCell>
                         <Button variant="outline" onClick={() => openEditModal(task)}>
-                          Edit
+                          {/* Edit */}
+                          <Edit size={16} /> 
                         </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Trash2 size={16} color='red' onClick={()=>openDeleteModal(task)} />
                       </TableCell>
                     </TableRow>
                   ))}

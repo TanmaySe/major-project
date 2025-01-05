@@ -39,3 +39,39 @@ export async function PATCH(request,{params}) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request,{params}) {
+  try {
+    const user = await currentUser();
+    if (!user) {
+        return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
+      }
+    // console.log("User : ",user)
+    const { task_id } = await params; 
+      console.log(task_id);
+      const { count, error: countError } = await supabase
+        .from('tasks')
+        .select('id', { count: 'exact' })
+        .eq('id', task_id)
+        .eq('created_by', user?.emailAddresses[0]?.emailAddress);
+      console.log(count);
+      if (countError|| count!=1) {        
+        return NextResponse.json({error: "Unauthorized" },{status:400});
+      }
+
+      const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', task_id)
+      .eq('created_by', user?.emailAddresses[0]?.emailAddress);
+      console.log("data",data);
+          
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({ data, message: "Project deleted successfully" });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

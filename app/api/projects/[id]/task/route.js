@@ -31,7 +31,8 @@ export async function POST(request,{params}) {
           priority,
           proj_id:id,
           assigned:assigned,
-          created_at: new Date(), // Optional: automatically use the current timestamp
+          created_at: new Date(),
+          created_by:user?.emailAddresses[0].emailAddress 
         }
       ]);
 
