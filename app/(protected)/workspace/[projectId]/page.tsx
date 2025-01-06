@@ -18,6 +18,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
+import {AiPopup} from '../_components/AiPopup';
+ 
 
 const ProjectPage = () => {
   const { projectId } = useParams();
@@ -42,6 +44,7 @@ const ProjectPage = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [delTaskId, setDelTaskId] = useState(null);
+  const [aiPopup,setAiPopup] = useState(null);
 
   // Priority color mapping
   const getPriorityColor = (priority) => {
@@ -284,6 +287,7 @@ const ProjectPage = () => {
               <Button
                 variant="outline"
                 className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
+                onClick={()=> setAiPopup(true)}
               >
                 <ShieldQuestion className="w-4 h-4" />
                 <span>Ask AI</span>
@@ -405,6 +409,8 @@ const ProjectPage = () => {
           </div>
         </div>
       )}
+
+      {aiPopup && <AiPopup/>}
 
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
