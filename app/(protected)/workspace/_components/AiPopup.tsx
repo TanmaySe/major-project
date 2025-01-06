@@ -15,7 +15,7 @@ export const AiPopup = () => {
       const recognition = new (window as any).webkitSpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.lang = 'en-IN';
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
@@ -65,39 +65,33 @@ export const AiPopup = () => {
     }
   };
 
+  // Listen for Ctrl + J keyboard shortcut to toggle listening
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'j') {
+        event.preventDefault(); // Prevent default behavior for Ctrl + J
+        handleVoiceInput();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }, [isListening]);
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        border: '2px solid #007bff',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-        padding: '16px',
-        width: '300px',
-        borderRadius: '8px',
-        backgroundColor: '#fff',
-        zIndex: 1000,
-      }}
-    >
-      <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '16px' }}>
+    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-blue-500 shadow-lg p-4 w-[300px] rounded-lg bg-white z-50">
+      <div className="max-h-[300px] overflow-y-auto mb-4">
         {messages.map((msg, index) => (
           <div
             key={index}
-            style={{
-              textAlign: msg.sender === 'user' ? 'right' : 'left',
-              margin: '8px 0',
-            }}
+            className={`my-2 text-${msg.sender === 'user' ? 'right' : 'left'}`}
           >
             <span
-              style={{
-                display: 'inline-block',
-                padding: '8px 12px',
-                borderRadius: '12px',
-                backgroundColor: msg.sender === 'user' ? '#007bff' : '#f1f1f1',
-                color: msg.sender === 'user' ? '#fff' : '#000',
-              }}
+              className={`inline-block px-3 py-2 rounded-full ${msg.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-black'}`}
             >
               {msg.text}
             </span>
@@ -105,27 +99,20 @@ export const AiPopup = () => {
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div className="flex items-center">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message"
-          style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          className="flex-1 p-2 rounded-md border border-gray-300"
         />
-        <button onClick={handleSend} style={{ marginLeft: '8px', padding: '8px 12px' }}>
+        <button onClick={handleSend} className="ml-2 p-2 px-4">
           Send
         </button>
         <button
           onClick={handleVoiceInput}
-          style={{
-            marginLeft: '8px',
-            padding: '8px 12px',
-            backgroundColor: isListening ? '#f44336' : '#4caf50',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-          }}
+          className={`ml-2 p-2 px-4 ${isListening ? 'bg-red-500' : 'bg-green-500'} text-white rounded-md`}
         >
           {isListening ? 'Stop' : 'Voice'}
         </button>
