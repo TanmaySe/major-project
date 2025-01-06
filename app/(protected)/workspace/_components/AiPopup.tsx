@@ -1,19 +1,18 @@
-// AiPopup.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export const AiPopup = () => {
   const [messages, setMessages] = useState([]); // Stores the chat history
   const [input, setInput] = useState(''); // Tracks the user's input
   const [isListening, setIsListening] = useState(false); // Tracks voice recognition state
 
-  let recognition: SpeechRecognition | null = null;
+  const recognitionRef = useRef<SpeechRecognition | null>(null); // Persistent reference
 
   // Initialize Speech Recognition
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
-      recognition = new (window as any).webkitSpeechRecognition();
+      const recognition = new (window as any).webkitSpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = false;
       recognition.lang = 'en-US';
@@ -29,7 +28,10 @@ export const AiPopup = () => {
 
       recognition.onend = () => {
         setIsListening(false);
+        console.log('Speech recognition ended.');
       };
+
+      recognitionRef.current = recognition;
     }
   }, []);
 
@@ -48,6 +50,7 @@ export const AiPopup = () => {
   };
 
   const handleVoiceInput = () => {
+    const recognition = recognitionRef.current;
     if (!recognition) {
       console.error('Speech recognition not supported in this browser.');
       return;
@@ -63,7 +66,8 @@ export const AiPopup = () => {
   };
 
   return (
-    <div style={{
+    <div
+      style={{
         position: 'fixed',
         top: '50%',
         left: '50%',
@@ -75,7 +79,8 @@ export const AiPopup = () => {
         borderRadius: '8px',
         backgroundColor: '#fff',
         zIndex: 1000,
-      }}>
+      }}
+    >
       <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '16px' }}>
         {messages.map((msg, index) => (
           <div
@@ -113,7 +118,14 @@ export const AiPopup = () => {
         </button>
         <button
           onClick={handleVoiceInput}
-          style={{ marginLeft: '8px', padding: '8px 12px', backgroundColor: isListening ? '#f44336' : '#4caf50', color: '#fff', border: 'none', borderRadius: '4px' }}
+          style={{
+            marginLeft: '8px',
+            padding: '8px 12px',
+            backgroundColor: isListening ? '#f44336' : '#4caf50',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+          }}
         >
           {isListening ? 'Stop' : 'Voice'}
         </button>
