@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronsUpDown, PlusCircle, FolderClosed, Trash2, Star, MoreHorizontal, Search } from "lucide-react";
+import { ChevronsUpDown, PlusCircle, FolderClosed, Trash2, Star, MoreHorizontal, Search, FolderPlus } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,7 +166,13 @@ const Sidebar = () => {
         {isLoading ? <Loading/> : 
         <div className="flex flex-col mt-4 px-2">
           {projects.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No projects found.</p>
+            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+            <FolderPlus className="w-12 h-12 text-gray-400" />
+            <p className="mt-4 text-lg font-semibold text-center">No Projects Found</p>
+            <p className="mt-2 text-sm text-center">
+              Start by creating a new project to get started.
+            </p>
+          </div>
           ) : (
             projects.map((project) => (
               <div 
