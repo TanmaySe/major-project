@@ -44,7 +44,13 @@ const ProjectPage = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [delTaskId, setDelTaskId] = useState(null);
-  const [aiPopup,setAiPopup] = useState(null);
+  const [aiPopup,setAiPopup] = useState(false);
+  const onOpen = () => {
+    setAiPopup(true)
+  };
+  const onClose = () => {
+    setAiPopup(false)
+  }
 
   // Priority color mapping
   const getPriorityColor = (priority) => {
@@ -410,7 +416,7 @@ const ProjectPage = () => {
         </div>
       )}
 
-      {aiPopup && <AiPopup/>}
+      <AiPopup aiPopup={aiPopup} onClose={onClose} onOpen={onOpen}/>
 
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">

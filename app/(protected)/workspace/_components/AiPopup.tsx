@@ -1,15 +1,48 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Send, Mic, MicOff, X, ChevronDown } from 'lucide-react';
 
-export const AiPopup = () => {
-  const [messages, setMessages] = useState([]); // Stores the chat history
-  const [input, setInput] = useState(''); // Tracks the user's input
-  const [isListening, setIsListening] = useState(false); // Tracks voice recognition state
+type Message = {
+  sender: 'user' | 'ai';
+  text: string;
+};
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null); // Persistent reference
+type Task = 'general' | 'coding' | 'writing' | 'analysis';
 
-  // Initialize Speech Recognition
+type AiPopupProps = {
+  aiPopup: boolean;
+  onClose: () => void;
+  onOpen: () => void;
+};
+
+export const AiPopup = ({ aiPopup, onClose, onOpen }: AiPopupProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task>('general');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Mock responses based on task type
+  const getMockResponse = (task: Task, userInput: string) => {
+    const responses = {
+      general: `General Assistant: I'll help you with "${userInput}"`,
+      coding: `Code Assistant: Here's how to solve "${userInput}"`,
+      writing: `Writing Assistant: Let me help you write "${userInput}"`,
+      analysis: `Analysis Assistant: Let me analyze "${userInput}"`,
+    };
+    return responses[task];
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
       const recognition = new (window as any).webkitSpeechRecognition();
@@ -17,18 +50,22 @@ export const AiPopup = () => {
       recognition.interimResults = false;
       recognition.lang = 'en-IN';
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
+      recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInput((prev) => prev + transcript);
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
       };
 
       recognition.onend = () => {
         setIsListening(false);
         console.log('Speech recognition ended.');
+        // Auto-send message when voice recording ends
+        if (input.trim()) {
+          handleSend();
+        }
       };
 
       recognitionRef.current = recognition;
@@ -36,20 +73,20 @@ export const AiPopup = () => {
   }, []);
 
   const handleSend = () => {
+    console.log("hndlesend")
     if (!input.trim()) return;
 
-    // Add user message to chat
     setMessages((prev) => [...prev, { sender: 'user', text: input }]);
 
-    // Simulate AI response (replace this with actual API call to your AI backend)
     setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: 'ai', text: `AI Response to: "${input}"` }]);
+      const response = getMockResponse(selectedTask, input);
+      setMessages((prev) => [...prev, { sender: 'ai', text: response }]);
     }, 1000);
 
     setInput('');
   };
 
-  const handleVoiceInput = () => {
+  const handleVoiceInput = (taskType?: Task) => {
     const recognition = recognitionRef.current;
     if (!recognition) {
       console.error('Speech recognition not supported in this browser.');
@@ -60,62 +97,141 @@ export const AiPopup = () => {
       recognition.stop();
       setIsListening(false);
     } else {
+      if (taskType) {
+        setSelectedTask(taskType);
+      }
       recognition.start();
       setIsListening(true);
     }
   };
 
-  // Listen for Ctrl + J keyboard shortcut to toggle listening
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.key === 'j') {
-        event.preventDefault(); // Prevent default behavior for Ctrl + J
-        handleVoiceInput();
+      if (event.ctrlKey) {
+        switch (event.key) {
+          case 'l':
+            event.preventDefault();
+            onOpen()
+            handleVoiceInput('general');
+            break;
+          case 'q':
+            event.preventDefault();
+            onOpen()
+            handleVoiceInput('coding');
+            break;
+          case 'w':
+            event.preventDefault();
+            onOpen()
+            handleVoiceInput('writing');
+            break;
+          case 'e':
+            event.preventDefault();
+            onOpen()
+            handleVoiceInput('analysis');
+            break;
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeydown);
-
-    // Cleanup event listener on component unmount
-    return () => {
-      window.removeEventListener('keydown', handleKeydown);
-    };
+    return () => window.removeEventListener('keydown', handleKeydown);
   }, [isListening]);
 
+  if (!aiPopup) return null;
+
   return (
-    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-blue-500 shadow-lg p-4 w-[300px] rounded-lg bg-white z-50">
-      <div className="max-h-[300px] overflow-y-auto mb-4">
+    <div className="fixed bottom-4 right-4 w-96 rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <h2 className="text-white font-semibold">AI Assistant</h2>
+        </div>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="text-white/80 hover:text-white transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      <div className="p-2 bg-gray-50 border-b border-gray-100">
+        <select
+          value={selectedTask}
+          onChange={(e) => setSelectedTask(e.target.value as Task)}
+          className="w-full p-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+        >
+          <option value="general">General Help (Ctrl + L)</option>
+          <option value="coding">Coding Help (Ctrl + Q)</option>
+          <option value="writing">Writing Help (Ctrl + W)</option>
+          <option value="analysis">Analysis Help (Ctrl + E)</option>
+        </select>
+      </div>
+
+      <div className="h-80 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`my-2 text-${msg.sender === 'user' ? 'right' : 'left'}`}
+            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <span
-              className={`inline-block px-3 py-2 rounded-full ${msg.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-black'}`}
+            <div
+              className={`max-w-[80%] break-words px-4 py-2 rounded-2xl shadow-sm
+                ${msg.sender === 'user' 
+                  ? 'bg-blue-600 text-white rounded-br-none' 
+                  : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+                }`}
             >
               {msg.text}
-            </span>
+            </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex items-center">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message"
-          className="flex-1 p-2 rounded-md border border-gray-300"
-        />
-        <button onClick={handleSend} className="ml-2 p-2 px-4">
-          Send
-        </button>
-        <button
-          onClick={handleVoiceInput}
-          className={`ml-2 p-2 px-4 ${isListening ? 'bg-red-500' : 'bg-green-500'} text-white rounded-md`}
-        >
-          {isListening ? 'Stop' : 'Voice'}
-        </button>
+      <div className="p-4 bg-white border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={`Ask for ${selectedTask} help...`}
+            className="flex-1 px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors text-sm"
+          />
+          
+          <button
+            onClick={() => handleVoiceInput()}
+            className={`p-2 rounded-full transition-colors ${
+              isListening 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+            title={`${isListening ? 'Stop' : 'Start'} voice input`}
+          >
+            {isListening ? (
+              <MicOff className="w-5 h-5 text-white" />
+            ) : (
+              <Mic className="w-5 h-5 text-white" />
+            )}
+          </button>
+          
+          <button
+            onClick={handleSend}
+            className="p-2 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors"
+            title="Send message (Enter)"
+          >
+            <Send className="w-5 h-5 text-white" />
+          </button>
+        </div>
       </div>
     </div>
   );
