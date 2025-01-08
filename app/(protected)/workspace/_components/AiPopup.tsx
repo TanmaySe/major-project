@@ -2,10 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Send, Mic, MicOff, X, ChevronDown } from 'lucide-react';
-
+type Member = {
+  id: string;
+  name: string;
+  email: string;
+};
 type Message = {
   sender: 'user' | 'ai';
   text: string;
+  red?: boolean
 };
 
 type Task = 'general' | 'coding' | 'writing' | 'analysis';
@@ -14,13 +19,19 @@ type AiPopupProps = {
   aiPopup: boolean;
   onClose: () => void;
   onOpen: () => void;
+  projectId: string | string[] | undefined
+  members:Member[]
 };
 
-export const AiPopup = ({ aiPopup, onClose, onOpen }: AiPopupProps) => {
+export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task>('general');
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -72,18 +83,79 @@ export const AiPopup = ({ aiPopup, onClose, onOpen }: AiPopupProps) => {
     }
   }, []);
 
-  const handleSend = () => {
-    console.log("hndlesend")
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newInput = e.target.value;
+    setInput(newInput);
+    
+    const cursorPos = e.target.selectionStart || 0;
+    setCursorPosition(cursorPos);
+    
+    // Show dropdown only when @ is typed and followed by a space
+    if (newInput[cursorPos - 1] === '@') {
+      setShowMentionDropdown(true);
+      return;
+    }
+    
+    // Hide dropdown if space is typed after @
+    if (showMentionDropdown && newInput[cursorPos - 1] === ' ') {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const handleMemberSelect = (member: Member) => {
+    const lastAtSymbol = input.lastIndexOf('@', cursorPosition);
+    const textBeforeAt = input.slice(0, lastAtSymbol);
+    const textAfterCursor = input.slice(cursorPosition);
+    
+    const newInput = `${textBeforeAt}@${member.email} ${textAfterCursor}`;
+    setInput(newInput);
+    setShowMentionDropdown(false);
+    
+    // Focus input and place cursor after the inserted mention
+    if (inputRef.current) {
+      inputRef.current.focus();
+      const newCursorPos = lastAtSymbol + member.name.length + 2; // +2 for @ and space
+      inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMentionDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSend = async() => {
     if (!input.trim()) return;
 
     setMessages((prev) => [...prev, { sender: 'user', text: input }]);
-
-    setTimeout(() => {
-      const response = getMockResponse(selectedTask, input);
-      setMessages((prev) => [...prev, { sender: 'ai', text: response }]);
-    }, 1000);
-
-    setInput('');
+    // const response = getMockResponse(selectedTask, input);
+    // setMessages((prev) => [...prev, { sender: 'ai', text: response }]);
+    try{
+      setInput('');
+      const response = await fetch(`/api/projects/${projectId}/ai/task`,{
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body:JSON.stringify({prompt:input})
+      })
+      const data = await response.json()
+      if(!response.ok) {
+        setMessages((prev) => [...prev,{sender:'ai',text:data.error,red:true}])
+      }
+      else {
+        setMessages((prev) => [...prev,{sender:'ai',text:data.data}])
+      }
+    } catch(error) {
+        setMessages((prev) => [...prev,{sender:'ai',text:"Something went wrong",red:true}])
+    }
   };
 
   const handleVoiceInput = (taskType?: Task) => {
@@ -187,7 +259,9 @@ export const AiPopup = ({ aiPopup, onClose, onOpen }: AiPopupProps) => {
               className={`max-w-[80%] break-words px-4 py-2 rounded-2xl shadow-sm
                 ${msg.sender === 'user' 
                   ? 'bg-blue-600 text-white rounded-br-none' 
-                  : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+                  : msg.red 
+                    ? 'bg-red-500 text-white rounded-bl-none' 
+                    : 'bg-blue-600 text-white rounded-bl-none'
                 }`}
             >
               {msg.text}
@@ -198,16 +272,40 @@ export const AiPopup = ({ aiPopup, onClose, onOpen }: AiPopupProps) => {
       </div>
 
       <div className="p-4 bg-white border-t border-gray-100">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={`Ask for ${selectedTask} help...`}
-            className="flex-1 px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors text-sm"
-          />
-          
+        <div className="flex items-center gap-2 relative">
+        <div className="flex-1 relative"> {/* Wrapper div for input and dropdown */}
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
+              placeholder={`Ask for ${selectedTask} help...`}
+              className="w-full px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors text-sm"
+            />
+            
+            {showMentionDropdown && (
+              <div 
+                ref={dropdownRef}
+                className="absolute left-0 bottom-full mb-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+              >
+                {members && members.length > 0 ? (
+                  members.map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() => handleMemberSelect(member)}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none flex flex-col"
+                    >
+                      <span className="text-sm font-medium">{member.name}</span>
+                      <span className="text-xs text-gray-500">{member.email}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-sm text-gray-500">No members available</div>
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => handleVoiceInput()}
             className={`p-2 rounded-full transition-colors ${

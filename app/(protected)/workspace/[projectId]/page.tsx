@@ -416,7 +416,7 @@ const ProjectPage = () => {
         </div>
       )}
 
-      <AiPopup aiPopup={aiPopup} onClose={onClose} onOpen={onOpen}/>
+      <AiPopup members={members} aiPopup={aiPopup} onClose={onClose} onOpen={onOpen} projectId={projectId}/>
 
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
