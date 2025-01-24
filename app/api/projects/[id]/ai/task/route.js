@@ -81,11 +81,13 @@ export async function POST(request,{params}) {
 
     //send it to create task api.
     // console.log(new Date());
+    const [day, month, year] = jsonRes.deadline.split('-');
+    const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     const taskPayload = {
       task:jsonRes.taskName,
       desc: jsonRes?.desc,
       // deadline:jsonRes.deadline,
-      deadline:new Date(jsonRes.deadline),
+      deadline:formattedDate,
       priority:jsonRes.priority,
       proj_id: id,
       assigned:jsonRes.assignees,
