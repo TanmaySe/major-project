@@ -5,6 +5,9 @@ const {
 } = require("@google/generative-ai");
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_KEY);
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -17,6 +20,8 @@ export async function POST(request,{params}) {
     try{
     const {prompt} = await request.json()
     const user = await currentUser()
+    const { id } = await params;
+    console.log("id mila atlast",id);
     if(!user) {
         return NextResponse.json({error:"There was an issue authenticating you"},{status:500})
     }
@@ -71,8 +76,34 @@ export async function POST(request,{params}) {
     if(!jsonRes.priority){
         return NextResponse.json({error:"You didn't mention priority"},{status:400})
     }
-    jsonRes.created_by = user?.emailAddresses[0]?.emailAddress
+    // jsonRes.created_by = user?.emailAddresses[0]?.emailAddress
     console.log("jsonRes : ",jsonRes)
+
+    //send it to create task api.
+    // console.log(new Date());
+    const taskPayload = {
+      task:jsonRes.taskName,
+      desc: jsonRes?.desc,
+      // deadline:jsonRes.deadline,
+      deadline:new Date(jsonRes.deadline),
+      priority:jsonRes.priority,
+      proj_id: id,
+      assigned:jsonRes.assignees,
+      created_at: new Date(),
+      created_by: user?.emailAddresses[0].emailAddress,
+    };
+    // create a task named start server assign it to Chaitanya Paranjpe, deadline should be 26-01-2025 and priority is medium
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([
+        taskPayload
+      ]);
+
+    // Handle any error from Supabase
+    if (error) {
+      throw error;
+    }
+
     return NextResponse.json({data:"Successfully created task"},{status:200})
     } catch(error) {
         return NextResponse.json({error:error.message},{status:500})
