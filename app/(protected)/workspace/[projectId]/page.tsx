@@ -491,10 +491,10 @@ const ProjectPage = () => {
                   >
                     <option value="">Select Member</option>
                     {members
-                      .filter((member) => !newTask.assigned.includes(member.name))
+                      .filter((member) => !newTask.assigned.includes(member.email))
                       .map((member) => (
-                        <option key={member.id} value={member.name}>
-                          {member.name}
+                        <option key={member.id} value={member.email}>
+                          {member.name}, {member.email}
                         </option>
                       ))}
                   </select>

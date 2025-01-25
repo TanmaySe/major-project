@@ -18,7 +18,8 @@ const model = genAI.getGenerativeModel({
 
 export async function POST(request,{params}) {
     try{
-    const {prompt} = await request.json()
+    const {prompt,members} = await request.json()
+    console.log(prompt)
     const user = await currentUser()
     const { id } = await params;
     console.log("id mila atlast",id);
@@ -52,9 +53,9 @@ export async function POST(request,{params}) {
             priority: {
               type: "string",
               enum: [
-                "high",
-                "medium",
-                "low"
+                "High",
+                "Medium",
+                "Low"
               ]
             }
           }
@@ -76,6 +77,9 @@ export async function POST(request,{params}) {
     if(!jsonRes.priority){
         return NextResponse.json({error:"You didn't mention priority"},{status:400})
     }
+    if(!jsonRes.taskName){
+      return NextResponse.json({error:"Couldnt figure out task name from prompt"},{status:400})
+  }
     // jsonRes.created_by = user?.emailAddresses[0]?.emailAddress
     console.log("jsonRes : ",jsonRes)
 
@@ -83,9 +87,10 @@ export async function POST(request,{params}) {
     // console.log(new Date());
     const [day, month, year] = jsonRes.deadline.split('-');
     const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
     const taskPayload = {
       task:jsonRes.taskName,
-      desc: jsonRes?.desc,
+      desc: jsonRes?.taskDescription,
       // deadline:jsonRes.deadline,
       deadline:formattedDate,
       priority:jsonRes.priority,

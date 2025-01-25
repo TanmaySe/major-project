@@ -28,6 +28,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task>('general');
+  const [selectedMembers,setSelectedMembers] = useState<Member[]>([])
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -106,7 +107,6 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
     const lastAtSymbol = input.lastIndexOf('@', cursorPosition);
     const textBeforeAt = input.slice(0, lastAtSymbol);
     const textAfterCursor = input.slice(cursorPosition);
-    
     const newInput = `${textBeforeAt}@${member.email} ${textAfterCursor}`;
     setInput(newInput);
     setShowMentionDropdown(false);
@@ -144,7 +144,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
         headers: {
           'Content-Type': 'application/json',
         },
-        body:JSON.stringify({prompt:input})
+        body:JSON.stringify({prompt:input,members})
       })
       const data = await response.json()
       if(!response.ok) {
