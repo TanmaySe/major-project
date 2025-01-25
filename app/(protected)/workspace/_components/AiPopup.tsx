@@ -13,7 +13,7 @@ type Message = {
   red?: boolean
 };
 
-type Task = 'general' | 'coding' | 'writing' | 'analysis';
+type Task = 'general' | 'create task' | 'writing' | 'analysis';
 
 type AiPopupProps = {
   aiPopup: boolean;
@@ -37,15 +37,15 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
   const recognitionRef = useRef<any>(null);
 
   // Mock responses based on task type
-  const getMockResponse = (task: Task, userInput: string) => {
-    const responses = {
-      general: `General Assistant: I'll help you with "${userInput}"`,
-      coding: `Code Assistant: Here's how to solve "${userInput}"`,
-      writing: `Writing Assistant: Let me help you write "${userInput}"`,
-      analysis: `Analysis Assistant: Let me analyze "${userInput}"`,
-    };
-    return responses[task];
-  };
+  // const getMockResponse = (task: Task, userInput: string) => {
+  //   const responses = {
+  //     general: `General Assistant: I'll help you with "${userInput}"`,
+  //     coding: `Code Assistant: Here's how to solve "${userInput}"`,
+  //     writing: `Writing Assistant: Let me help you write "${userInput}"`,
+  //     analysis: `Analysis Assistant: Let me analyze "${userInput}"`,
+  //   };
+  //   return responses[task];
+  // };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,29 +132,57 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
   }, []);
 
   const handleSend = async() => {
-    if (!input.trim()) return;
-
+    if (!input.trim()) {
+      return;
+    };
+    console.log("Task : ",selectedTask)
     setMessages((prev) => [...prev, { sender: 'user', text: input }]);
     // const response = getMockResponse(selectedTask, input);
     // setMessages((prev) => [...prev, { sender: 'ai', text: response }]);
-    try{
+    if(selectedTask == 'create task'){
+      try{
+        setInput('');
+        const response = await fetch(`/api/projects/${projectId}/ai/task`,{
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body:JSON.stringify({prompt:input,members})
+        })
+        const data = await response.json()
+        if(!response.ok) {
+          setMessages((prev) => [...prev,{sender:'ai',text:data.error,red:true}])
+        }
+        else {
+          setMessages((prev) => [...prev,{sender:'ai',text:data.data}])
+        }
+      } catch(error) {
+          setMessages((prev) => [...prev,{sender:'ai',text:"Something went wrong",red:true}])
+      }
+    }
+    else if(selectedTask == 'general') {
       setInput('');
-      const response = await fetch(`/api/projects/${projectId}/ai/task`,{
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body:JSON.stringify({prompt:input,members})
-      })
-      const data = await response.json()
-      if(!response.ok) {
-        setMessages((prev) => [...prev,{sender:'ai',text:data.error,red:true}])
-      }
-      else {
-        setMessages((prev) => [...prev,{sender:'ai',text:data.data}])
-      }
-    } catch(error) {
+      try{
+        const response = await fetch(`/api/projects/${projectId}/ai/general`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({prompt:input}),
+        });
+
+        const data = await response.json()
+    
+        if (!response.ok) {
+          setMessages((prev) => [...prev,{sender:'ai',text:data.error,red:true}])
+        }
+        else {
+          setMessages((prev) => [...prev,{sender:'ai',text:data.data}])        
+        }
+    
+      }catch(error){
         setMessages((prev) => [...prev,{sender:'ai',text:"Something went wrong",red:true}])
+      }
     }
   };
 
@@ -191,12 +219,12 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
           case 'l':
             event.preventDefault();
             onOpen()
-            handleVoiceInput('general');
+            handleVoiceInput('create task');
             break;
           case 'q':
             event.preventDefault();
             onOpen()
-            handleVoiceInput('coding');
+            handleVoiceInput('general');
             break;
           case 'w':
             event.preventDefault();
@@ -242,8 +270,8 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
           onChange={(e) => setSelectedTask(e.target.value as Task)}
           className="w-full p-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
         >
-          <option value="general">General Help (Ctrl + L)</option>
-          <option value="coding">Coding Help (Ctrl + Q)</option>
+          <option value="general">General Help (Ctrl + Q)</option>
+          <option value="create task">Create Task (Ctrl + L)</option>
           <option value="writing">Writing Help (Ctrl + W)</option>
           <option value="analysis">Analysis Help (Ctrl + E)</option>
         </select>
