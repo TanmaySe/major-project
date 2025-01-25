@@ -13,7 +13,7 @@ type Message = {
   red?: boolean
 };
 
-type Task = 'general' | 'create task' | 'writing' | 'analysis';
+type Task = 'general' | 'create task' | 'create project' | 'analysis';
 
 type AiPopupProps = {
   aiPopup: boolean;
@@ -183,6 +183,30 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
       }catch(error){
         setMessages((prev) => [...prev,{sender:'ai',text:"Something went wrong",red:true}])
       }
+    }else if(selectedTask === 'create project'){
+      setInput('');
+      try{
+        const response = await fetch(`/api/projects/${projectId}/ai/project`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({prompt:input}),
+        });
+
+        const data = await response.json()
+    
+        if (!response.ok) {
+          setMessages((prev) => [...prev,{sender:'ai',text:data.error,red:true}])
+        }
+        else {
+          setMessages((prev) => [...prev,{sender:'ai',text:data.data}])        
+        }
+    
+      }catch(error){
+        setMessages((prev) => [...prev,{sender:'ai',text:"Something went wrong",red:true}])
+      }
+
     }
   };
 
@@ -229,7 +253,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
           case 'w':
             event.preventDefault();
             onOpen()
-            handleVoiceInput('writing');
+            handleVoiceInput('create project');
             break;
           case 'e':
             event.preventDefault();
@@ -272,7 +296,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
         >
           <option value="general">General Help (Ctrl + Q)</option>
           <option value="create task">Create Task (Ctrl + L)</option>
-          <option value="writing">Writing Help (Ctrl + W)</option>
+          <option value="create project">Create Project(Ctrl + W)</option>
           <option value="analysis">Analysis Help (Ctrl + E)</option>
         </select>
       </div>
