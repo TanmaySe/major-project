@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Mic, MicOff, X, ChevronDown } from 'lucide-react';
+import { Send, Mic, MicOff, X } from 'lucide-react';
 type Member = {
   id: string;
   name: string;
@@ -28,7 +28,6 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task>('general');
-  const [selectedMembers,setSelectedMembers] = useState<Member[]>([])
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);

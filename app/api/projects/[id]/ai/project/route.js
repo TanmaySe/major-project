@@ -1,7 +1,5 @@
 const {
     GoogleGenerativeAI,
-    HarmCategory,
-    HarmBlockThreshold,
 } = require("@google/generative-ai");
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
