@@ -1,13 +1,11 @@
 'use client';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, UsersRound, Edit, Trash2, Plus, ChevronDown, ChevronRight, CheckCircle } from "lucide-react";
+import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, Edit, Trash2, Plus, ChevronDown, CheckCircle } from "lucide-react";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,

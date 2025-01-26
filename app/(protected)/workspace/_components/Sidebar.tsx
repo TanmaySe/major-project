@@ -1,7 +1,6 @@
 'use client';
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
 import { SignOutButton, useUser } from "@clerk/clerk-react";
 import { useRouter } from 'next/navigation';
 
@@ -23,7 +22,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "react-hot-toast";

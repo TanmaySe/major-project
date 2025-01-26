@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { currentUser } from '@clerk/nextjs/server';
-import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_KEY);
