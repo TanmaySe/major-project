@@ -5,13 +5,19 @@ import { SignIn, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-
+interface InviteData {
+    invite_id: string;  // UUID - Primary key
+    proj_id: string | null;  // UUID - Nullable foreign key to `project.id`
+    email: string;  // Email address (VARCHAR)
+    status: string | null;  // Nullable status (TEXT)
+    created_at: string;  // Timestamp with time zone (ISO string format)
+}
 const InvitePage = () => {
     const params = useSearchParams();
     const token = params.get("token");
     const { user } = useUser();
     const router = useRouter()
-    const [data,setData] = useState(null)
+    const [data,setData] = useState<InviteData | null>(null)
     const [error,setError] = useState(null)
     useEffect(() => {
         const validateInvite = async () => {
