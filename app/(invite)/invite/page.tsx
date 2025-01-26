@@ -55,7 +55,7 @@ const InvitePage = () => {
         }
         router.push(`/workspace/${data?.data}`)
     }catch(error) {
-        console.log(error.message)
+        console.log(error)
     }
     }
 
@@ -90,7 +90,7 @@ const InvitePage = () => {
                         Invite Details
                     </h2>
                     <div className="text-gray-600 space-y-2">
-                        <p><strong>You are invited for :</strong> {data.proj_id}</p>
+                        <p><strong>You are invited for :</strong> {data?.proj_id}</p>
                     </div>
                     <div className="flex justify-between mt-6">
                         <Button variant="accept" onClick={handleAccept}>
