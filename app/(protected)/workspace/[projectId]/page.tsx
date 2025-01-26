@@ -17,7 +17,27 @@ import { useEffect, useState } from 'react';
 import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
 import {AiPopup} from '../_components/AiPopup';
- 
+interface Errors {
+  priority?: string;
+  task?: string;
+  description?:string;
+  assigned?:string;
+  deadline?:string;
+}
+interface Task {
+  id: number; // bigint is mapped to number in TypeScript
+  created_at: string; // timestamp with time zone, which will be a string (ISO 8601 format)
+  task: string; // task name (text)
+  desc: string | null; // description, can be null (text)
+  deadline: string | null; // deadline, can be null (date)
+  priority: string; // priority (text)
+  proj_id: string; // proj_id (uuid), typically stored as a string
+  category: string; // category (character varying), default value 'todo'
+  created_by: string | null; // created_by (character varying), can be null
+  assigned: string[] | null; // assigned (text[]), array of strings, can be null
+}
+
+
 
 const ProjectPage = () => {
   const { projectId } = useParams();
@@ -26,8 +46,8 @@ const ProjectPage = () => {
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [detailsFetchedSuccess, setDetailsFetchedSuccess] = useState(false);
-  const [tasks, setTasks] = useState([]);
-  const [invited, setInvited] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [invited, setInvited] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newTask, setNewTask] = useState({
     task: '',
@@ -37,7 +57,7 @@ const ProjectPage = () => {
     priority: '',
   });
   const [members, setMembers] = useState([]);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Errors>({});
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -109,7 +129,7 @@ const ProjectPage = () => {
       setSelectedTask(null);
       fetchTasks();
     } catch (error) {
-      toast.error(error.message, { position: "top-center" });
+      toast.error(error, { position: "top-center" });
     }
   };
 
@@ -125,7 +145,7 @@ const ProjectPage = () => {
         setMembers(data.membersData);
         setDetailsFetchedSuccess(true);
       } catch (error) {
-        toast.error(error.message, { position: 'top-center' });
+        toast.error(error, { position: 'top-center' });
       } finally {
         setLoading(false);
       }
@@ -143,7 +163,7 @@ const ProjectPage = () => {
       }
       setTasks(data.data);
     } catch (error) {
-      toast.error(error.message, { position: 'top-center' });
+      toast.error(error, { position: 'top-center' });
     }
   };
 
@@ -176,7 +196,7 @@ const ProjectPage = () => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors:Errors = {};
     if (!newTask.task) newErrors.task = 'Task name is required';
     if (!newTask.description) newErrors.description = 'Description is required';
     if (!newTask.assigned.length) newErrors.assigned = 'At least one assignee is required';
@@ -213,7 +233,7 @@ const ProjectPage = () => {
       });
       fetchTasks();
     } catch (error) {
-      toast.error(error.message, { position: "top-center" });
+      toast.error(error, { position: "top-center" });
     }
   };
 
