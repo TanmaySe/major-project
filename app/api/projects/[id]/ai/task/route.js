@@ -105,7 +105,7 @@ export async function POST(request,{params}) {
       .insert([
         taskPayload
       ]);
-
+        
     // Handle any error from Supabase
     if (error) {
       throw error;

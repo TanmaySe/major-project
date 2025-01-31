@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronsUpDown, PlusCircle, FolderClosed, Trash2, Star, MoreHorizontal, Search, FolderPlus } from "lucide-react";
+import { ChevronsUpDown, PlusCircle, FolderClosed, Trash2, Star, MoreHorizontal, Search, FolderPlus, MessageCircle } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "react-hot-toast";
@@ -38,10 +37,13 @@ const Sidebar = () => {
   const [projectName, setProjectName] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading,setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
 
-  // Existing fetch and handler functions remain the same
+  // Chat members state
+  const [members, setMembers] = useState([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
   const fetchProjects = async () => {
     try {
       setIsLoading(true);
@@ -54,13 +56,29 @@ const Sidebar = () => {
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch projects.");
-    }finally{
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMembers = async () => {
+    try {
+      setIsLoadingMembers(true);
+      const response = await fetch("/api/chat/members");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to fetch members");
+      setMembers(result.data);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch members.");
+    } finally {
+      setIsLoadingMembers(false);
     }
   };
 
   useEffect(() => {
     fetchProjects();
+    fetchMembers();
   }, []);
 
   const handleCreateProject = async () => {
@@ -100,6 +118,11 @@ const Sidebar = () => {
 
   const handleProjectClick = (id) => {
     router.push(`/workspace/${id}`);
+  };
+
+  const handleChatClick = (member) => {
+    const {member_id,name} = member;
+    router.push(`/workspace/chat/${member_id}?name=${name}`);
   };
 
   return (
@@ -151,28 +174,11 @@ const Sidebar = () => {
           </Button>
         </div>
 
-        {/* Search Bar */}
-        <div className="px-3 mt-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search projects..." 
-              className="pl-9 bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-9"
-            />
-          </div>
-        </div>
-
         {/* Projects List */}
         {isLoading ? <Loading/> : 
         <div className="flex flex-col mt-4 px-2">
           {projects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-            <FolderPlus className="w-12 h-12 text-gray-400" />
-            <p className="mt-4 text-lg font-semibold text-center">No Projects Found</p>
-            <p className="mt-2 text-sm text-center">
-              Start by creating a new project to get started.
-            </p>
-          </div>
+            <p className="text-gray-500 text-center mt-4">No projects found.</p>
           ) : (
             projects.map((project) => (
               <div 
@@ -182,70 +188,34 @@ const Sidebar = () => {
               >
                 <FolderClosed className="w-5 h-5 mr-3 text-blue-600" />
                 <p className="text-sm text-gray-700 font-medium">{project.name}</p>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <div role="button" className="ml-auto p-1 rounded-md hover:bg-gray-200 transition-colors">
-                      <MoreHorizontal className="h-4 w-4 text-gray-400" />
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-60" align="start" side="right" forceMount>
-                    <DropdownMenuItem className="text-red-500">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete project
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Star className="h-4 w-4 mr-2 text-yellow-500" />
-                      Star this project
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             ))
           )}
         </div>
         }
-        {/* Create Project Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] z-[99999]">
-            <DialogHeader>
-              <DialogTitle>Create new project</DialogTitle>
-              <DialogDescription>Enter your project details below.</DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-4 py-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="name" className="text-sm font-medium text-gray-700">Project name</label>
-                <Input
-                  id="name"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="description" className="text-sm font-medium text-gray-700">Description</label>
-                <Textarea
-                  id="description"
-                  value={projectDesc}
-                  onChange={(e) => setProjectDesc(e.target.value)}
-                  className="h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              {errorMessage && (
-                <p className="text-red-500 text-sm">{errorMessage}</p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button 
-                onClick={handleCreateProject} 
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isCreating ? "Creating..." : "Create project"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+
+        {/* Chat Members */}
+        <div className="chat px-3 mt-4">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Chat</h2>
+          {isLoadingMembers ? (
+            <p className="text-gray-500">Loading members...</p>
+          ) : members.length === 0 ? (
+            <p className="text-gray-500">No members found.</p>
+          ) : (
+            <ul className="space-y-2">
+              {members.map((member) => (
+                <li 
+                  key={member.member_id} 
+                  onClick={() => handleChatClick(member)}
+                  className="flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <MessageCircle className="w-5 h-5 text-gray-600 mr-2" />
+                  <span className="text-sm font-medium text-gray-700">{member.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </aside>
     </>
   );

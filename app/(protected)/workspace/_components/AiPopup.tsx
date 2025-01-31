@@ -234,6 +234,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
       e.preventDefault();
       handleSend();
     }
+
   };
 
   useEffect(() => {
