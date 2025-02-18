@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Send, Mic, MicOff, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { getBoards, handleTrelloAuth } from '@/components/utils/trelloFunctions';
 type Member = {
   id: string;
   name: string;
@@ -9,11 +12,19 @@ type Member = {
 };
 type Message = {
   sender: 'user' | 'ai';
-  text: string;
-  red?: boolean
+  text?: string;
+  red?: boolean;
+  button?: boolean;
+  redirect?: string;
+  utility?: (...args: any[]) => any;
+  utilityText?:string;
+  boardName?: string;
+  boardId?: string;
+  desc?:string;
+  bgImage?: string
 };
 
-type Task = 'general' | 'create task' | 'create project' | 'analysis';
+type Task = 'general' | 'create task' | 'create project' | 'trello';
 
 type AiPopupProps = {
   aiPopup: boolean;
@@ -21,9 +32,10 @@ type AiPopupProps = {
   onOpen: () => void;
   projectId: string | string[] | undefined
   members:Member[]
+  token?: string | null
 };
 
-export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupProps) => {
+export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members,token }: AiPopupProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -34,6 +46,9 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const router = useRouter();
+  const trelloApiKey = process.env.NEXT_PUBLIC_TRELLO_API
+  
 
   // Mock responses based on task type
   // const getMockResponse = (task: Task, userInput: string) => {
@@ -55,6 +70,32 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
   }, [messages]);
 
   useEffect(() => {
+    if(selectedTask === 'trello') {
+      setMessages((prev) => [...prev, { sender:'ai',text:'Login to your trello acount' ,button:true,utility:handleTrelloAuth,utilityText:'handleTrelloAuth'}]);
+    }
+    else{
+      setMessages([])
+    }
+  },[selectedTask])
+
+  useEffect(() => {
+    const getTrelloUser = async() => {
+      const response = await fetch(`https://api.trello.com/1/members/me/?key=${trelloApiKey}&token=${token}`)
+      if(!response.ok) {
+        console.log("issue")
+        setMessages((prev) => [...prev, { sender: 'ai', text: 'Something went wrong',red:true }]);
+      }
+      else{
+      const data = await response.json()
+        setMessages((prev) => [...prev, { sender: 'ai', text: `Hi ${data?.fullName}.Choose what you want to do?` }]);
+        setMessages((prev) => [...prev, { sender: 'ai', text: 'Import trello data',button:true,utility:getBoards,utilityText:'getBoards' }]);
+      }
+    }
+    if(token) {
+      setSelectedTask('trello')
+      getTrelloUser()
+    }
+    
     if ('webkitSpeechRecognition' in window) {
       const recognition = new (window as any).webkitSpeechRecognition();
       recognition.continuous = true;
@@ -81,7 +122,10 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
 
       recognitionRef.current = recognition;
     }
+    
   }, []);
+
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newInput = e.target.value;
@@ -207,6 +251,10 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
       }
 
     }
+    else if(selectedTask === 'trello'){
+
+    }
+
   };
 
   const handleVoiceInput = (taskType?: Task) => {
@@ -234,7 +282,6 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
       handleSend();
     }
   };
-
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.ctrlKey) {
@@ -257,7 +304,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
           case 'e':
             event.preventDefault();
             onOpen()
-            handleVoiceInput('analysis');
+            handleVoiceInput('trello');
             break;
         }
       }
@@ -296,7 +343,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
           <option value="general">General Help (Ctrl + Q)</option>
           <option value="create task">Create Task (Ctrl + L)</option>
           <option value="create project">Create Project(Ctrl + W)</option>
-          <option value="analysis">Analysis Help (Ctrl + E)</option>
+          <option value="trello">Trello (Ctrl + E)</option>
         </select>
       </div>
 
@@ -306,9 +353,35 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
             key={index}
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
+            {msg.button ? ( <>
+            {msg.utilityText == 'handleTrelloAuth' && (
+              <div>
+              <Button onClick={() => msg.utility(trelloApiKey,projectId,router)} variant="default">Connect Trello account</Button>
+              </div>
+            )}
+            {msg.utilityText == 'getBoards' && (
+              <div>
+              <Button onClick={() => msg.utility(trelloApiKey,token,setMessages,messages)} variant="ghost">Import trello data</Button>
+              </div>
+            )}
+            {msg.utilityText == 'getListsFromBoard' && (
+              <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-lg w-full">
+              <div className="w-24 h-24 flex-shrink-0">
+                <img src={msg.bgImage} alt="Board Background" className="w-full h-full object-cover rounded-lg" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">{msg.boardName}</h3>
+                <p className="text-sm text-gray-600">{msg.desc}</p>
+              </div>
+            </div>
+            
+            )}
+            
+            </>
+            ):(
             <div
               className={`max-w-[80%] break-words px-4 py-2 rounded-2xl shadow-sm
-                ${msg.sender === 'user' 
+                ${msg.sender === 'user'
                   ? 'bg-blue-600 text-white rounded-br-none' 
                   : msg.red 
                     ? 'bg-red-500 text-white rounded-bl-none' 
@@ -317,6 +390,8 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members }: AiPopupP
             >
               {msg.text}
             </div>
+            )}
+            
           </div>
         ))}
         <div ref={messagesEndRef} />

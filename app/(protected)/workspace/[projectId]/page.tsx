@@ -41,6 +41,7 @@ interface Task {
 
 const ProjectPage = () => {
   const { projectId } = useParams();
+  const [token, setToken] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,18 @@ const ProjectPage = () => {
     };
 
     fetchProjectName();
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash; // Get the fragment part (#token=...)
+      const tokenValue = new URLSearchParams(hash.replace("#", "?")).get("token");
+      setToken(tokenValue);
+    }
   }, [projectId]);
+
+  useEffect(() => {
+    if(token) {
+      setAiPopup(true)
+    }
+  },[token])
 
   const fetchTasks = async () => {
     try {
@@ -434,7 +446,7 @@ const ProjectPage = () => {
         </div>
       )}
 
-      <AiPopup members={members} aiPopup={aiPopup} onClose={onClose} onOpen={onOpen} projectId={projectId}/>
+      <AiPopup token={token} members={members} aiPopup={aiPopup} onClose={onClose} onOpen={onOpen} projectId={projectId}/>
 
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
