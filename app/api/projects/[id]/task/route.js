@@ -11,7 +11,7 @@ export async function POST(request,{params}) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
     console.log("here")
-    const { task, description, assigned, deadline, priority } = await request.json();
+    const { task, description, assigned, deadline, priority,category="todo" } = await request.json();
 
     // Validate the required fields
     const { id } = await params; 
@@ -25,9 +25,10 @@ export async function POST(request,{params}) {
       .from('tasks')
       .insert([
         {
-          task: task,        // 'task' corresponds to 'name'
+          task: task,// 'task' corresponds to 'name'
           desc: description, // 'description' corresponds to 'desc'
           deadline,
+          category,
           priority,
           proj_id:id,
           assigned:assigned,

@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Mic, MicOff, X } from 'lucide-react';
+import { Send, Mic, MicOff, X, CheckCircle, NotebookPen, LayoutList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { ExternalLink } from "lucide-react";
+import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { getBoards, handleTrelloAuth } from '@/components/utils/trelloFunctions';
+import { getBoards, handleTrelloAuth,createTaskFromTrello } from '@/components/utils/trelloFunctions';
 type Member = {
   id: string;
   name: string;
@@ -22,6 +25,13 @@ type Message = {
   boardId?: string;
   desc?:string;
   bgImage?: string
+  listName?:string;
+  listId?:string;
+  cardName?:string
+  cardId?:string
+  cardDesc?:string;
+  cardDeadline?:string;
+  members?:{name:string|null;email:string|null;avatar:string|null;}[];
 };
 
 type Task = 'general' | 'create task' | 'create project' | 'trello';
@@ -365,7 +375,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members,token }: Ai
               </div>
             )}
             {msg.utilityText == 'getListsFromBoard' && (
-              <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-lg w-full">
+              <div onClick={() => msg.utility(trelloApiKey,msg.boardId,token,setMessages)} className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-lg w-full">
               <div className="w-24 h-24 flex-shrink-0">
                 <img src={msg.bgImage} alt="Board Background" className="w-full h-full object-cover rounded-lg" />
               </div>
@@ -374,9 +384,84 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members,token }: Ai
                 <p className="text-sm text-gray-600">{msg.desc}</p>
               </div>
             </div>
-            
             )}
-            
+            {msg.utilityText == 'getCardsFromList' && (
+              <div onClick={() => msg.utility(trelloApiKey,token,msg.listId,setMessages)} className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-lg w-full">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">{msg.listName}</h3>
+              </div>
+            </div>
+            )}
+
+{msg.utilityText == 'cards' && (
+  <div className="flex items-center p-3">
+    <div className="w-full max-w-md bg-gradient-to-br from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
+      <div className="p-4">
+        {/* Header Row */}
+        <div className="flex justify-between items-start gap-3 mb-2">
+          <div className="flex-1">
+            <h3 className="text-base font-medium text-gray-800 line-clamp-1">{msg.cardName}</h3>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{msg.cardDesc}</p>
+          </div>
+          {msg.redirect && (
+            <a 
+              href={msg.redirect} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
+        </div>
+
+        {/* Bottom Row */}
+        <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100">
+          {/* Deadline with icon */}
+          <div className="flex items-center text-gray-500">
+            <div className="text-xs font-medium bg-gray-50 px-2 py-1 rounded-md">
+              {msg.cardDeadline && format(new Date(msg.cardDeadline), 'MMM d, yyyy')}
+            </div>
+          </div>
+
+          {/* Icons for Actions */}
+          <div className="flex items-center gap-3 text-gray-500">
+            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"medium",msg.members,projectId,setMessages,"todo")} className="p-1 hover:bg-gray-100 rounded-md transition">
+              <LayoutList className="w-3 h-3" />
+            </button>
+            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"medium",msg.members,projectId,setMessages,"inprogress")} className="p-1 hover:bg-gray-100 rounded-md transition">
+              <NotebookPen className="w-3 h-3" />
+            </button>
+            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"medium",msg.members,projectId,setMessages,"done")} className="p-1 hover:bg-gray-100 rounded-md transition">
+              <CheckCircle className="w-3 h-3 text-green-500" />
+            </button>
+          </div>
+
+          {/* Members Avatar Stack */}
+          {msg.members && msg.members.length > 0 && (
+            <div className="flex -space-x-2 items-center">
+              {msg.members.map((member, index) => (
+                <Avatar 
+                  key={member.email}
+                  className="border-2 border-white w-6 h-6 bg-gray-100 hover:scale-110 transition-transform"
+                  title={member.name}
+                >
+                  <AvatarImage
+                    src={member.avatar}
+                    alt={member.name}
+                    className="object-cover"
+                  />
+                </Avatar>
+              ))}
+              
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+           
             </>
             ):(
             <div

@@ -347,102 +347,113 @@ const ProjectPage = () => {
           </div>
 
           <div className="space-y-4">
-            {['To-do', 'In Progress', 'Done'].map((section) => (
-              <Card key={section} className="overflow-hidden">
-                <Collapsible.Root>
-                  <Collapsible.Trigger className="w-full">
-                    <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${
-                          section === 'To-do' ? 'bg-purple-100 text-purple-600' :
-                          section === 'In Progress' ? 'bg-blue-100 text-blue-600' :
-                          'bg-green-100 text-green-600'
-                        }`}>
-                          {section === 'To-do' ? <LayoutList className="w-4 h-4" /> :
-                           section === 'In Progress' ? <NotebookPen className="w-4 h-4" /> :
-                           <CheckCircle className="w-4 h-4" />}
-                        </div>
-                        <h2 className="text-lg font-medium text-gray-800">{section}</h2>
-                      </div>
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </Collapsible.Trigger>
-                  <Collapsible.Content>
-                    <CardContent className="p-4">
-                      {section === 'To-do' ? (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-gray-50">
-                                <TableHead className="font-semibold">Task</TableHead>
-                                <TableHead className="font-semibold">Description</TableHead>
-                                <TableHead className="font-semibold">Assigned</TableHead>
-                                <TableHead className="font-semibold">Deadline</TableHead>
-                                <TableHead className="font-semibold">Priority</TableHead>
-                                <TableHead className="font-semibold">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {tasks.map((task, index) => (
-                                <TableRow key={index} className="hover:bg-gray-50">
-                                  <TableCell className="font-medium">{task.task}</TableCell>
-                                  <TableCell>{task.desc}</TableCell>
-                                  <TableCell>
-                                    <div className="flex flex-wrap gap-1">
-                                      {task.assigned && task.assigned.map((assignee, idx) => (
-                                        <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                          {assignee}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center space-x-2">
-                                      <CalendarDays className="w-4 h-4 text-gray-400" />
-                                      <span>{task.deadline}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge className={getPriorityColor(task.priority)}>
-                                      {task.priority}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex space-x-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openEditModal(task)}
-                                        className="hover:bg-gray-100"
-                                      >
-                                        <Edit className="w-4 h-4 text-gray-600" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openDeleteModal(task)}
-                                        className="hover:bg-red-100"
-                                      >
-                                        <Trash2 className="w-4 h-4 text-red-600" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
+  {['To-do', 'In Progress', 'Done'].map((section) => {
+    const filteredTasks = tasks.filter((task) =>
+      section === 'To-do' ? task.category === 'todo' :
+      section === 'In Progress' ? task.category === 'inprogress' :
+      task.category === 'done'
+    );
+
+    return (
+      <Card key={section} className="overflow-hidden">
+        <Collapsible.Root>
+          <Collapsible.Trigger className="w-full">
+            <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  section === 'To-do' ? 'bg-purple-100 text-purple-600' :
+                  section === 'In Progress' ? 'bg-blue-100 text-blue-600' :
+                  'bg-green-100 text-green-600'
+                }`}>
+                  {section === 'To-do' ? <LayoutList className="w-4 h-4" /> :
+                  section === 'In Progress' ? <NotebookPen className="w-4 h-4" /> :
+                  <CheckCircle className="w-4 h-4" />}
+                </div>
+                <h2 className="text-lg font-medium text-gray-800">{section}</h2>
+              </div>
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            </div>
+          </Collapsible.Trigger>
+          <Collapsible.Content>
+            <CardContent className="p-4">
+              {filteredTasks.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold">Task</TableHead>
+                        <TableHead className="font-semibold">Description</TableHead>
+                        <TableHead className="font-semibold">Assigned</TableHead>
+                        <TableHead className="font-semibold">Deadline</TableHead>
+                        <TableHead className="font-semibold">Priority</TableHead>
+                        <TableHead className="font-semibold">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTasks.map((task, index) => (
+                        <TableRow key={index} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{task.task}</TableCell>
+                          <TableCell>{task.desc}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {task.assigned && task.assigned.map((assignee, idx) => (
+                                <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  {assignee}
+                                </Badge>
                               ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      ) : (
-                        <div className="p-4 text-gray-500 text-sm">
-                          {section === 'In Progress' ? 'In progress tasks will appear here' : 'Completed tasks will appear here'}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Collapsible.Content>
-                </Collapsible.Root>
-              </Card>
-            ))}
-          </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <CalendarDays className="w-4 h-4 text-gray-400" />
+                              <span>{task.deadline}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getPriorityColor(task.priority)}>
+                              {task.priority}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditModal(task)}
+                                className="hover:bg-gray-100"
+                              >
+                                <Edit className="w-4 h-4 text-gray-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDeleteModal(task)}
+                                className="hover:bg-red-100"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="p-4 text-gray-500 text-sm">
+                  {section === 'To-do' ? 'No tasks in To-do' :
+                  section === 'In Progress' ? 'No tasks in progress' :
+                  'No completed tasks'}
+                </div>
+              )}
+            </CardContent>
+          </Collapsible.Content>
+        </Collapsible.Root>
+      </Card>
+    );
+  })}
+</div>
+
         </div>
       )}
 
