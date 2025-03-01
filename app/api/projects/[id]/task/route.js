@@ -11,23 +11,25 @@ export async function POST(request,{params}) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
     console.log("here")
-    const { task, description, assigned, deadline, priority } = await request.json();
+    const { task, description, assigned, deadline, priority,category="todo",predictedTime } = await request.json();
 
     // Validate the required fields
     const { id } = await params; 
     if (!task || !description || !assigned || !deadline || !priority  ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-    console.log(task,description,assigned,deadline,priority );
+    console.log(task,description,assigned,deadline,priority , predictedTime);
 
     // Insert task into the 'task' table in Supabase
     const { data, error } = await supabase
       .from('tasks')
       .insert([
         {
-          task: task,        // 'task' corresponds to 'name'
+          task: task,// 'task' corresponds to 'name'
           desc: description, // 'description' corresponds to 'desc'
           deadline,
+          predicted_time: predictedTime,
+          category,
           priority,
           proj_id:id,
           assigned:assigned,
@@ -46,6 +48,7 @@ export async function POST(request,{params}) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 export async function GET(request,{params}) {
   try{
   const { id } = await params;
