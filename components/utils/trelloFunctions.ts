@@ -106,6 +106,10 @@ export const getCardsFromList = async(trelloApiKey,token,listId,setMessages) => 
 
     console.log(processedData);
 
+    if(processedData.length == 0) {
+        setMessages((prev) => [...prev, { sender: 'ai', text: 'You have no cards.' }]);
+    }
+
     setMessages((prev) => [...prev, ...processedData]);
     
 }

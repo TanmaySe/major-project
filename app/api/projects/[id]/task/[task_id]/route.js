@@ -13,7 +13,7 @@ export async function PATCH(request,{params}) {
       }
     // console.log("User : ",user)
     const { task_id } = await params; 
-    if (!task || !description || !assigned || !deadline || !priority  ) {
+    if (!task) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
       console.log(task,description,assigned,deadline,priority );
@@ -22,10 +22,10 @@ export async function PATCH(request,{params}) {
       .from('tasks')
       .update({
         task: task,        
-        desc: description, 
-        deadline,
-        priority,
-        assigned: assigned, 
+        desc: description || null, 
+        deadline: deadline || null,
+        priority: priority || null,
+        assigned: Array.isArray(assigned) && assigned.length === 0 ? null : assigned, 
       })
       .eq('id', task_id);
     

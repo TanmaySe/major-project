@@ -58,6 +58,7 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members,token }: Ai
   const recognitionRef = useRef<any>(null);
   const router = useRouter();
   const trelloApiKey = process.env.NEXT_PUBLIC_TRELLO_API
+  console.log("Members in AIPOPUP : ",members)
   
 
   // Mock responses based on task type
@@ -426,13 +427,13 @@ export const AiPopup = ({ aiPopup, onClose, onOpen,projectId,members,token }: Ai
 
           {/* Icons for Actions */}
           <div className="flex items-center gap-3 text-gray-500">
-            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"medium",msg.members,projectId,setMessages,"todo")} className="p-1 hover:bg-gray-100 rounded-md transition">
+            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"Medium",msg.members,projectId,setMessages,"todo")} className="p-1 hover:bg-gray-100 rounded-md transition">
               <LayoutList className="w-3 h-3" />
             </button>
-            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"medium",msg.members,projectId,setMessages,"inprogress")} className="p-1 hover:bg-gray-100 rounded-md transition">
+            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"Medium",msg.members,projectId,setMessages,"inprogress")} className="p-1 hover:bg-gray-100 rounded-md transition">
               <NotebookPen className="w-3 h-3" />
             </button>
-            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"medium",msg.members,projectId,setMessages,"done")} className="p-1 hover:bg-gray-100 rounded-md transition">
+            <button onClick={() => createTaskFromTrello(msg.cardName,msg.cardDesc,msg.cardDeadline,"Medium",msg.members,projectId,setMessages,"done")} className="p-1 hover:bg-gray-100 rounded-md transition">
               <CheckCircle className="w-3 h-3 text-green-500" />
             </button>
           </div>

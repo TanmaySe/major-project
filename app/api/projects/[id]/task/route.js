@@ -15,23 +15,23 @@ export async function POST(request,{params}) {
 
     // Validate the required fields
     const { id } = await params; 
-    if (!task || !description || !assigned || !deadline || !priority  ) {
+    if (!task ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-    console.log(task,description,assigned,deadline,priority );
 
+    console.log("22")
     // Insert task into the 'task' table in Supabase
     const { data, error } = await supabase
       .from('tasks')
       .insert([
         {
           task: task,// 'task' corresponds to 'name'
-          desc: description, // 'description' corresponds to 'desc'
-          deadline,
-          category,
-          priority,
+          desc: description || null, // 'description' corresponds to 'desc'
+          deadline: deadline || null,
+          category: category || null,
+          priority: priority || null,
           proj_id:id,
-          assigned:assigned,
+          assigned:Array.isArray(assigned) && assigned.length === 0 ? null : assigned,
           created_at: new Date(),
           created_by:user?.emailAddresses[0].emailAddress 
         }
@@ -44,6 +44,7 @@ export async function POST(request,{params}) {
 
     return NextResponse.json({ data });
   } catch (error) {
+    console.log(error)
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -24,6 +24,7 @@ export async function POST(request,{params}) {
     if(!user) {
         return NextResponse.json({error:"There was an issue authenticating you"},{status:500})
     }
+    const emails = members.map(member => member.email);
     const generationConfig = {
         temperature: 1,
         topP: 0.95,
@@ -45,7 +46,8 @@ export async function POST(request,{params}) {
             assignees: {
               type: "array",
               items: {
-                type: "string"
+                type: "string",
+                enum: emails
               }
             },
             priority: {
@@ -64,17 +66,19 @@ export async function POST(request,{params}) {
         history: [
         ],
     });
-    const result = await chatSession.sendMessage(prompt);
+    console.log("members : ",emails)
+    let finalPrompt = prompt + ". Extract only valid emails from the provided list. If the user mentions emails ambiguously, match them to the closest valid emails from the list. If none match, do not return the assignees property."
+    const result = await chatSession.sendMessage(finalPrompt);
     const res = result.response.text()
     let jsonRes = JSON.parse(res)
     console.log("jsonRes : ",jsonRes)
 
-    if(!jsonRes.deadline){
-        return NextResponse.json({error:"You didn't mention deadline"},{status:400})
-    }
-    if(!jsonRes.priority){
-        return NextResponse.json({error:"You didn't mention priority"},{status:400})
-    }
+    // if(!jsonRes.deadline){
+    //     return NextResponse.json({error:"You didn't mention deadline"},{status:400})
+    // }
+    // if(!jsonRes.priority){
+    //     return NextResponse.json({error:"You didn't mention priority"},{status:400})
+    // }
     if(!jsonRes.taskName){
       return NextResponse.json({error:"Couldnt figure out task name from prompt"},{status:400})
   }
@@ -83,17 +87,20 @@ export async function POST(request,{params}) {
 
     //send it to create task api.
     // console.log(new Date());
-    const [day, month, year] = jsonRes.deadline.split('-');
-    const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    if(jsonRes?.deadline){
+      const [day, month, year] = jsonRes?.deadline.split('-');
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
 
     const taskPayload = {
       task:jsonRes.taskName,
-      desc: jsonRes?.taskDescription,
+      desc: jsonRes?.taskDescription || null,
       // deadline:jsonRes.deadline,
-      deadline:formattedDate,
-      priority:jsonRes.priority,
+      deadline:jsonRes?.deadline ? formattedDate : null,
+      priority:jsonRes?.priority || null,
       proj_id: id,
-      assigned:jsonRes.assignees,
+      assigned:jsonRes?.assignees || null,
       created_at: new Date(),
       created_by: user?.emailAddresses[0].emailAddress,
     };

@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
 import {AiPopup} from '../_components/AiPopup';
+import AvatarStack from '../_components/AvatarStack';
 interface Errors {
   priority?: string;
   task?: string;
@@ -30,7 +31,7 @@ interface Task {
   task: string; // task name (text)
   desc: string | null; // description, can be null (text)
   deadline: string | null; // deadline, can be null (date)
-  priority: string; // priority (text)
+  priority: string | null; // priority (text)
   proj_id: string; // proj_id (uuid), typically stored as a string
   category: string; // category (character varying), default value 'todo'
   created_by: string | null; // created_by (character varying), can be null
@@ -114,7 +115,8 @@ const ProjectPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        toast.error("Failed to update task", { position: 'top-center' });
+        return;
       }
 
       toast.success("Task updated successfully!", { position: "top-center" });
@@ -140,7 +142,8 @@ const ProjectPage = () => {
         const response = await fetch(`/api/projects/${projectId}`);
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error);
+          toast.error(data.error, { position: 'top-center' });
+          return;
         }
         setProjectName(data.projectData.name);
         setMembers(data.membersData);
@@ -171,7 +174,8 @@ const ProjectPage = () => {
       const response = await fetch(`/api/projects/${projectId}/task`);
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error);
+        toast.error(data.error, { position: 'top-center' });
+        return;
       }
       setTasks(data.data);
     } catch (error) {
@@ -210,10 +214,10 @@ const ProjectPage = () => {
   const validateForm = () => {
     const newErrors:Errors = {};
     if (!newTask.task) newErrors.task = 'Task name is required';
-    if (!newTask.description) newErrors.description = 'Description is required';
-    if (!newTask.assigned.length) newErrors.assigned = 'At least one assignee is required';
-    if (!newTask.deadline) newErrors.deadline = 'Deadline is required';
-    if (!newTask.priority) newErrors.priority = 'Priority is required';
+    // if (!newTask.description) newErrors.description = 'Description is required';
+    // if (!newTask.assigned.length) newErrors.assigned = 'At least one assignee is required';
+    // if (!newTask.deadline) newErrors.deadline = 'Deadline is required';
+    // if (!newTask.priority) newErrors.priority = 'Priority is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -231,7 +235,8 @@ const ProjectPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create task');
+        toast.error("Falied to create task", { position: "top-center" });
+        return;
       }
 
       toast.success("Task created successfully!", { position: "top-center" });
@@ -272,6 +277,7 @@ const ProjectPage = () => {
       const data = await response.json();
       if (!response.ok) {
         toast.error(data.error, { position: 'top-center' });
+        return;
       }
     } catch (error) {
       console.log("Error sending invites:", error);
@@ -291,6 +297,7 @@ const ProjectPage = () => {
       setDelTaskId(null);
       if (!response.ok) {
         toast.error(data.error, { position: 'top-center' });
+        return
       } else {
         toast.success("Task Deleted Successfully!", { position: 'top-center' });
         fetchTasks();
@@ -320,6 +327,7 @@ const ProjectPage = () => {
               <h1 className="text-2xl font-semibold text-gray-800">{projectName}</h1>
             </div>
             <div className="flex space-x-4">
+            <AvatarStack members={members} />
               <Button
                 variant="outline"
                 className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
