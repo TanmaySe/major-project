@@ -43,7 +43,10 @@ export const getListsFromBoard = async(trelloApiKey,boardId,token,setMessages) =
             utilityText:'getCardsFromList',
             utility:getCardsFromList
         }))
-        console.log(data)
+        if(filteredData.length == 0) {
+            setMessages((prev) => [...prev, { sender: 'ai', text: 'There are no list(s) in this board.'}]);
+            return;
+        }
         setMessages((prev) => {
             const newMessages = [...prev, ...filteredData];
             return newMessages;
@@ -68,6 +71,7 @@ export const getCardsFromList = async(trelloApiKey,token,listId,setMessages) => 
             try {
                 const res = await fetch(`https://api.trello.com/1/members/${memberId}?key=${trelloApiKey}&token=${token}&fields=fullName,email,avatarUrl`);
                 const memberData = await res.json();
+                console.log("getMemberDetails : ",memberData)
                 return {
                     name: memberData.fullName || null,
                     email: memberData.email || null,
@@ -107,7 +111,8 @@ export const getCardsFromList = async(trelloApiKey,token,listId,setMessages) => 
     console.log(processedData);
 
     if(processedData.length == 0) {
-        setMessages((prev) => [...prev, { sender: 'ai', text: 'You have no cards.' }]);
+        setMessages((prev) => [...prev, { sender: 'ai', text: 'There are no card(s) in this list.' }]);
+        return;
     }
 
     setMessages((prev) => [...prev, ...processedData]);

@@ -11,18 +11,13 @@ export async function GET(request,{params}) {
       return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
     }
     const { id } = await params; 
-    console.log(id," here in api")
-
     const { data, error } = await supabase
       .from('members')
-      .select('id,name')
+      .select('id,name,email')
       .eq('proj_id', id);
-      console.log(data," here in api")
     if (error) {
-      console.error("Error fetching members:", error);
-    } else {
-      console.log("Members:", data);
-    }
+      return NextResponse.json({ error: "Unable to fetch members from project" }, { status: 500 });
+    } 
 
     return NextResponse.json({ data });
   } catch (error) {

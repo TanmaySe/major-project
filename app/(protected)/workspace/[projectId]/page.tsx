@@ -1,7 +1,10 @@
 'use client';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, Edit, Trash2, Plus, ChevronDown, CheckCircle } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import dayjs from "dayjs";
+import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, Edit, Trash2, Plus, ChevronDown, CheckCircle,AlertTriangle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -400,8 +403,25 @@ const ProjectPage = () => {
                     <TableBody>
                       {filteredTasks.map((task, index) => (
                         <TableRow key={index} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">{task.task}</TableCell>
-                          <TableCell>{task.desc}</TableCell>
+                          <TableCell className="font-medium">
+                          {dayjs().isAfter(dayjs(task.deadline)) && (
+                            <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
+                          )}
+                            {task.task}
+                          </TableCell>
+                          <TableCell>
+                            <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
+                              li: ({ children }) => <li className="ml-4">{children}</li>,
+                            }}
+                            >
+                              {task.desc}
+
+                            </ReactMarkdown>
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {task.assigned && task.assigned.map((assignee, idx) => (

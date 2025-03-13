@@ -24,6 +24,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.17.4",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "framer-motion": "^11.15.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.469.0",
@@ -34,6 +35,8 @@
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.4.1",
     "react-lottie": "^1.2.10",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
   },

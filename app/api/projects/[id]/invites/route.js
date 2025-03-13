@@ -39,21 +39,34 @@ export async function POST(request, { params }) {
 
     // Insert rows into the invites table
     const { data, error } = await supabase.from('invites').insert(inviteEntries).select();
-    console.log("data : ",data)
     if (error) {
-      throw new Error(error);
+      return NextResponse.json({ error: "Error from supabase" }, { status: 500 });
+
     }
 
     // Send invitation emails
-    await Promise.all(
+    await Promise.allSettled(
       invited.map(async email => {
         const token = data.find(invite => invite.email === email).invite_id;
+        const inviteLink = `http://localhost:3000/invite?token=${token}`;
         await smtpTransporter.sendMail({
           from: GMAIL_USER,
           to: email,
           subject: `You are invited to project ${id}`,
-          text: `You have been invited to join the project. Use the following link to accept the invitation: 
-          http://localhost:3000/invite?token=${token}`,
+          html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
+            <h2 style="color: #2c3e50;">Project Invitation</h2>
+            <p>You have been invited to join the project <strong>${id}</strong>.</p>
+            <p>Click the button below to accept the invitation:</p>
+            <a href="${inviteLink}" style="display: inline-block; padding: 10px 20px; margin: 10px 0;
+              background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px;">
+              Accept Invitation
+            </a>
+            <p>If the button above doesn’t work, you can use the following link:</p>
+            <p><a href="${inviteLink}">${inviteLink}</a></p>
+            <p>Best regards,<br/>Your Team</p>
+          </div>
+        `,
         });
       })
     );
