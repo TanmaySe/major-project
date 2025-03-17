@@ -100,6 +100,24 @@ const Sidebar = () => {
     router.push(`/workspace/${id}`);
   };
 
+  const handleDeleteProject = async(event,id) => {
+    event.stopPropagation()
+    const response = await fetch("/api/projects", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id:id
+      }),
+    });
+    if(!response.ok) {
+          const data = await response.json()
+          console.log(data)
+          toast.error(data.error);
+          return;
+    }
+    await fetchProjects()
+  }
+
   return (
     <>
       <Toaster position="top-right" reverseOrder={false} />
@@ -187,7 +205,10 @@ const Sidebar = () => {
                     </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-60" align="start" side="right" forceMount>
-                    <DropdownMenuItem className="text-red-500">
+                    <DropdownMenuItem 
+                    className="text-red-500"
+                    onClick={(event) => handleDeleteProject(event,project.id)}
+                    >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete project
                     </DropdownMenuItem>

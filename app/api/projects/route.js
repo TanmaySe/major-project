@@ -57,3 +57,38 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const body = await request.json();
+    const { id } = body;
+    const user = await currentUser()
+    if(!user) {
+      return NextResponse.json({error:"Not authenticated"},{ status: 400})
+    }
+    const { data, error } = await supabase
+    .from("project")
+    .select(`
+      created_by
+    `)
+    .eq("id", id);
+    if(error) {
+      return NextResponse.json({error:"Supabase error"},{status:500})
+    }
+    if(data[0]?.created_by != user?.emailAddresses[0].emailAddress) {
+      return NextResponse.json({error:"Not authorized"},{status:400})
+    }
+    const { deleteError } = await supabase
+    .from("project")
+    .delete()
+    .eq("id", id);
+    if(deleteError) {
+      return NextResponse.json({error:"Issue deleting project"},{status:500})
+
+    }
+    return NextResponse.json({data:"Deleted"},{status:200})
+
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
