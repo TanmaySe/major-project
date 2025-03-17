@@ -87,9 +87,10 @@ export async function POST(request,{params}) {
 
     //send it to create task api.
     // console.log(new Date());
+    var formattedDate;
     if(jsonRes?.deadline){
       const [day, month, year] = jsonRes?.deadline.split('-');
-      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
     
 
