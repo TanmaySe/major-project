@@ -11,7 +11,7 @@ const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash-exp",
-    systemInstruction: "You will be given a prompt by a user who wants to create a task in a PM tool. The prompt would contain certain details . On basis of that details you have to return me a JSON output. If any property of JSON is not found in the prompt then just leave that property. \nNote : Make sure that the deadline property is in dd-mm-yyyy format",
+    systemInstruction: "You will be given a prompt by a user who wants to create a task in a PM tool. The prompt would contain certain details . On basis of that details you have to return me a JSON output. If any property of JSON is not found in the prompt then just leave that property. \nNote : \n1. Make sure that the deadline property is in dd-mm-yyyy format\n2.Extract only valid emails from the provided list. If the user mentions emails ambiguously, match them to the closest valid emails from the list. If none match, do not return the assignees property."
 });
 
 export async function POST(request,{params}) {
@@ -67,7 +67,7 @@ export async function POST(request,{params}) {
         ],
     });
     console.log("members : ",emails)
-    let finalPrompt = prompt + ". Extract only valid emails from the provided list. If the user mentions emails ambiguously, match them to the closest valid emails from the list. If none match, do not return the assignees property."
+    let finalPrompt = prompt
     const result = await chatSession.sendMessage(finalPrompt);
     const res = result.response.text()
     let jsonRes = JSON.parse(res)
