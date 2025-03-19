@@ -21,6 +21,8 @@ import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
 import {AiPopup} from '../_components/AiPopup';
 import AvatarStack from '../_components/AvatarStack';
+import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+
 interface Errors {
   priority?: string;
   task?: string;
@@ -40,6 +42,146 @@ interface Task {
   created_by: string | null; // created_by (character varying), can be null
   assigned: string[] | null; // assigned (text[]), array of strings, can be null
 }
+
+const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: task.id.toString(),
+  });
+
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {};
+
+  return (
+    <TableRow ref={setNodeRef} style={style} key={index} className="hover:bg-gray-50">
+      <TableCell {...listeners} {...attributes} className="font-medium">
+      {dayjs().isAfter(dayjs(task.deadline)) && (
+        <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
+      )}
+        {task.task}
+      </TableCell>
+      <TableCell {...listeners} {...attributes}>
+        <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
+          li: ({ children }) => <li className="ml-4">{children}</li>,
+        }}
+        >
+          {task.desc}
+
+        </ReactMarkdown>
+      </TableCell>
+      <TableCell {...listeners} {...attributes}>
+        <div className="flex flex-wrap gap-1">
+          {task.assigned && task.assigned.map((assignee, idx) => (
+            <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              {assignee}
+            </Badge>
+          ))}
+        </div>
+      </TableCell>
+      <TableCell {...listeners} {...attributes}>
+        <div className="flex items-center space-x-2">
+          <CalendarDays className="w-4 h-4 text-gray-400" />
+          <span>{task.deadline}</span>
+        </div>
+      </TableCell>
+      <TableCell {...listeners} {...attributes}>
+        <Badge className={getPriorityColor(task.priority)}>
+          {task.priority}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {e.preventDefault();e.stopPropagation();openEditModal(task)}}
+            className="hover:bg-gray-100"
+          >
+            <Edit className="w-4 h-4 text-gray-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {e.preventDefault();e.stopPropagation();openDeleteModal(task)}}
+            className="hover:bg-red-100"
+          >
+            <Trash2 className="w-4 h-4 text-red-600" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,openEditModal }) => {
+  const { setNodeRef } = useDroppable({
+    id: section,
+  });
+
+  return (
+    <Card ref={setNodeRef} key={section} className="overflow-hidden">
+      <Collapsible.Root>
+        <Collapsible.Trigger className="w-full">
+          <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-3">
+              <div className={`p-2 rounded-lg ${
+                section === 'To-do' ? 'bg-purple-100 text-purple-600' :
+                section === 'In Progress' ? 'bg-blue-100 text-blue-600' :
+                'bg-green-100 text-green-600'
+              }`}>
+                {section === 'To-do' ? <LayoutList className="w-4 h-4" /> :
+                section === 'In Progress' ? <NotebookPen className="w-4 h-4" /> :
+                <CheckCircle className="w-4 h-4" />}
+              </div>
+              <h2 className="text-lg font-medium text-gray-800">{section}</h2>
+            </div>
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          </div>
+        </Collapsible.Trigger>
+        <Collapsible.Content>
+          <CardContent className="p-4">
+            {tasks.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Task</TableHead>
+                      <TableHead className="font-semibold">Description</TableHead>
+                      <TableHead className="font-semibold">Assigned</TableHead>
+                      <TableHead className="font-semibold">Deadline</TableHead>
+                      <TableHead className="font-semibold">Priority</TableHead>
+                      <TableHead className="font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tasks.map((task, index) => (
+                     
+                      <TaskCard 
+                      task={task} 
+                      index={index}
+                      getPriorityColor={getPriorityColor}
+                      openDeleteModal={openDeleteModal}
+                      openEditModal={openEditModal}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="p-4 text-gray-500 text-sm">
+                {section === 'To-do' ? 'No tasks in To-do' :
+                section === 'In Progress' ? 'No tasks in progress' :
+                'No completed tasks'}
+              </div>
+            )}
+          </CardContent>
+        </Collapsible.Content>
+      </Collapsible.Root>
+    </Card>
+  );
+};
 
 
 
@@ -74,6 +216,12 @@ const ProjectPage = () => {
   const onClose = () => {
     setAiPopup(false)
   }
+
+  const onDragEnd = (event) => {
+    if (event.over) {
+      console.log(`Task ${event.active.id} is dropped in ${event.over.id}`);
+    }
+  };
 
   // Priority color mapping
   const getPriorityColor = (priority) => {
@@ -315,8 +463,6 @@ const ProjectPage = () => {
       <Loading />
     );
   }
-  
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -356,131 +502,28 @@ const ProjectPage = () => {
               </Button>
             </div>
           </div>
-
+          <DndContext onDragEnd={onDragEnd}>
           <div className="space-y-4">
-  {['To-do', 'In Progress', 'Done'].map((section) => {
-    const filteredTasks = tasks.filter((task) =>
-      section === 'To-do' ? task.category === 'todo' :
-      section === 'In Progress' ? task.category === 'inprogress' :
-      task.category === 'done'
-    );
+            {['To-do', 'In Progress', 'Done'].map((section) => {
+              const filteredTasks = tasks.filter((task) =>
+                section === 'To-do' ? task.category === 'todo' :
+                section === 'In Progress' ? task.category === 'inprogress' :
+                task.category === 'done'
+              );
+              return (
+                <DroppableSection 
+                key={section} 
+                section={section} 
+                tasks={filteredTasks} 
+                getPriorityColor={getPriorityColor}
+                openDeleteModal={openDeleteModal}
+                openEditModal={openEditModal}
+                />
+              );
+            })}
+          </div>
+          </DndContext>
 
-    return (
-      <Card key={section} className="overflow-hidden">
-        <Collapsible.Root>
-          <Collapsible.Trigger className="w-full">
-            <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${
-                  section === 'To-do' ? 'bg-purple-100 text-purple-600' :
-                  section === 'In Progress' ? 'bg-blue-100 text-blue-600' :
-                  'bg-green-100 text-green-600'
-                }`}>
-                  {section === 'To-do' ? <LayoutList className="w-4 h-4" /> :
-                  section === 'In Progress' ? <NotebookPen className="w-4 h-4" /> :
-                  <CheckCircle className="w-4 h-4" />}
-                </div>
-                <h2 className="text-lg font-medium text-gray-800">{section}</h2>
-              </div>
-              <ChevronDown className="w-5 h-5 text-gray-400" />
-            </div>
-          </Collapsible.Trigger>
-          <Collapsible.Content>
-            <CardContent className="p-4">
-              {filteredTasks.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="font-semibold">Task</TableHead>
-                        <TableHead className="font-semibold">Description</TableHead>
-                        <TableHead className="font-semibold">Assigned</TableHead>
-                        <TableHead className="font-semibold">Deadline</TableHead>
-                        <TableHead className="font-semibold">Priority</TableHead>
-                        <TableHead className="font-semibold">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTasks.map((task, index) => (
-                        <TableRow key={index} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">
-                          {dayjs().isAfter(dayjs(task.deadline)) && (
-                            <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
-                          )}
-                            {task.task}
-                          </TableCell>
-                          <TableCell>
-                            <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
-                              ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
-                              li: ({ children }) => <li className="ml-4">{children}</li>,
-                            }}
-                            >
-                              {task.desc}
-
-                            </ReactMarkdown>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {task.assigned && task.assigned.map((assignee, idx) => (
-                                <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  {assignee}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <CalendarDays className="w-4 h-4 text-gray-400" />
-                              <span>{task.deadline}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getPriorityColor(task.priority)}>
-                              {task.priority}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditModal(task)}
-                                className="hover:bg-gray-100"
-                              >
-                                <Edit className="w-4 h-4 text-gray-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openDeleteModal(task)}
-                                className="hover:bg-red-100"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="p-4 text-gray-500 text-sm">
-                  {section === 'To-do' ? 'No tasks in To-do' :
-                  section === 'In Progress' ? 'No tasks in progress' :
-                  'No completed tasks'}
-                </div>
-              )}
-            </CardContent>
-          </Collapsible.Content>
-        </Collapsible.Root>
-      </Card>
-    );
-  })}
-</div>
 
         </div>
       )}
