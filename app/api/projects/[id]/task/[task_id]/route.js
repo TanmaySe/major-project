@@ -6,7 +6,6 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 
 export async function PATCH(request,{params}) {
   try {
-    console.log("Here updtate task")
     const { task, description, assigned, deadline, priority,category } = await request.json();
     const user = await currentUser();
     if (!user) {
