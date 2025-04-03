@@ -282,6 +282,10 @@ const ProjectPage = () => {
       },
       body: JSON.stringify({
         task:event.active.data.current?.task.task,
+        description:event.active.data.current?.task.desc,
+        deadline:event.active.data.current?.task.deadline,
+        priority:event.active.data.current?.task.priority,
+        assigned:event.active.data.current?.task.assigned,
         category:(destinationSection == "To-do") ? "todo" : (destinationSection == "In Progress") ? "inprogress" : (destinationSection == "Done") ? "done" : "todo"
       }),
     });
