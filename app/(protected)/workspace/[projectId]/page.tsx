@@ -21,7 +21,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
 import {AiPopup} from '../_components/AiPopup';
 import AvatarStack from '../_components/AvatarStack';
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import { DndContext, DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
 
 interface Errors {
   priority?: string;
@@ -42,16 +42,60 @@ interface Task {
   created_by: string | null; // created_by (character varying), can be null
   assigned: string[] | null; // assigned (text[]), array of strings, can be null
 }
+// Create a preview component for the overlay
+
+// TaskCardPreview Component with null checks
+const TaskCardPreview = ({ task, getPriorityColor }) => {
+  // Add null checks to prevent "Cannot read properties of null" errors
+  if (!task) return null;
+  
+  return (
+    <div className="bg-white border rounded-md shadow-md p-4 w-full max-w-3xl">
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="flex items-center">
+            {task.deadline && dayjs().isAfter(dayjs(task.deadline)) && (
+              <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
+            )}
+            <h3 className="font-medium">{task.task}</h3>
+          </div>
+          <div className="text-sm text-gray-600 mt-1">
+            {task.desc && (task.desc.length > 50 ? `${task.desc.substring(0, 50)}...` : task.desc)}
+          </div>
+        </div>
+        <Badge className={getPriorityColor(task.priority)}>
+          {task.priority}
+        </Badge>
+      </div>
+      <div className="flex justify-between items-center mt-3">
+        <div className="flex flex-wrap gap-1">
+          {task.assigned && task.assigned.length > 0 && task.assigned.map((assignee, idx) => (
+            <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              {assignee}
+            </Badge>
+          ))}
+        </div>
+        <div className="flex items-center text-sm text-gray-500">
+          <CalendarDays className="w-4 h-4 mr-1" />
+          {task.deadline}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal }) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform,isDragging } = useDraggable({
     id: task.id.toString(),
+    data: { section:task.category,task }, // Only pass section, not the entire task
   });
-
+  if (isDragging) {
+    return <TableRow ref={setNodeRef} className="opacity-0" />;
+  }
   const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {};
 
   return (
-    <TableRow ref={setNodeRef} style={style} key={index} className="hover:bg-gray-50">
+    <TableRow ref={setNodeRef} key={`task-${task.id}`} style={style} className="hover:bg-gray-50">
       <TableCell {...listeners} {...attributes} className="font-medium">
       {dayjs().isAfter(dayjs(task.deadline)) && (
         <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
@@ -159,6 +203,7 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
                     {tasks.map((task, index) => (
                      
                       <TaskCard 
+                      key={task.id}
                       task={task} 
                       index={index}
                       getPriorityColor={getPriorityColor}
@@ -210,6 +255,7 @@ const ProjectPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [delTaskId, setDelTaskId] = useState(null);
   const [aiPopup,setAiPopup] = useState(false);
+  const [activeTask, setActiveTask] = useState(null);
   const onOpen = () => {
     setAiPopup(true)
   };
@@ -217,9 +263,30 @@ const ProjectPage = () => {
     setAiPopup(false)
   }
 
-  const onDragEnd = (event) => {
-    if (event.over) {
-      console.log(`Task ${event.active.id} is dropped in ${event.over.id}`);
+  const onDragEnd = async(event) => {
+    setActiveTask(null)
+    if (!event.over) {
+
+      return;
+    }
+    const sourceSection = event.active.data.current?.section;
+    const destinationSection = event.over.id;
+    
+    // Return early if source and destination are the same section
+    if ((sourceSection === "todo" && destinationSection === "To-do") || (sourceSection === "inprogress" && destinationSection === "In Progress") || (sourceSection === "done" && destinationSection === "Done")) return;
+    console.log("cleared validation")
+    const response = await fetch(`/api/projects/${projectId}/task/${event.active.data.current?.task.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        task:event.active.data.current?.task.task,
+        category:(destinationSection == "To-do") ? "todo" : (destinationSection == "In Progress") ? "inprogress" : (destinationSection == "Done") ? "done" : "todo"
+      }),
+    });
+    if(response.ok){
+      fetchTasks()
     }
   };
 
@@ -457,6 +524,12 @@ const ProjectPage = () => {
       console.log(error);
     }
   };
+  const onDragStart = (event) => {
+    // Find the task being dragged
+    const taskId = event.active.id;
+    const draggedTask = tasks.find(task => task.id.toString() === taskId);
+    setActiveTask(draggedTask);
+  };
 
   if (loading) {
     return (
@@ -502,7 +575,7 @@ const ProjectPage = () => {
               </Button>
             </div>
           </div>
-          <DndContext onDragEnd={onDragEnd}>
+          <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <div className="space-y-4">
             {['To-do', 'In Progress', 'Done'].map((section) => {
               const filteredTasks = tasks.filter((task) =>
@@ -522,6 +595,14 @@ const ProjectPage = () => {
               );
             })}
           </div>
+          <DragOverlay>
+            {activeTask && (
+              <TaskCardPreview 
+                task={activeTask} 
+                getPriorityColor={getPriorityColor} 
+              />
+            )}
+          </DragOverlay>
           </DndContext>
 
 

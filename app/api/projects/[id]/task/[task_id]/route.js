@@ -6,7 +6,8 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 
 export async function PATCH(request,{params}) {
   try {
-    const { task, description, assigned, deadline, priority } = await request.json();
+    console.log("Here updtate task")
+    const { task, description, assigned, deadline, priority,category } = await request.json();
     const user = await currentUser();
     if (!user) {
         return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
@@ -16,7 +17,7 @@ export async function PATCH(request,{params}) {
     if (!task) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
-      console.log(task,description,assigned,deadline,priority );
+      console.log(task,description,assigned,deadline,priority,category );
 
       const { data, error } = await supabase
       .from('tasks')
@@ -26,6 +27,7 @@ export async function PATCH(request,{params}) {
         deadline: deadline || null,
         priority: priority || null,
         assigned: Array.isArray(assigned) && assigned.length === 0 ? null : assigned, 
+        category: category || "todo"
       })
       .eq('id', task_id);
     
