@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import dayjs from "dayjs";
-import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, Edit, Trash2, Plus, ChevronDown, CheckCircle,AlertTriangle } from "lucide-react";
+import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, Edit, Trash2, Plus, ChevronDown, CheckCircle,AlertTriangle, MessageSquare } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,8 +20,11 @@ import { useEffect, useState } from 'react';
 import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
 import {AiPopup} from '../_components/AiPopup';
-import AvatarStack from '../_components/AvatarStack';
 import { DndContext, DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
+import { useUser } from "@clerk/clerk-react";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import SimpleMDE from "react-simplemde-editor";
+import "easymde/dist/easymde.min.css";
 
 interface Errors {
   priority?: string;
@@ -84,7 +87,8 @@ const TaskCardPreview = ({ task, getPriorityColor }) => {
   );
 };
 
-const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal }) => {
+// Update TaskCard component props to include openCommentsModal
+const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal, openCommentsModal }) => {
   const { attributes, listeners, setNodeRef, transform,isDragging } = useDraggable({
     id: task.id.toString(),
     data: { section:task.category,task }, // Only pass section, not the entire task
@@ -140,6 +144,18 @@ const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal })
           <Button
             variant="ghost"
             size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openCommentsModal(task);
+            }}
+            className="hover:bg-gray-100"
+          >
+            <MessageSquare className="w-4 h-4 text-gray-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={(e) => {e.preventDefault();e.stopPropagation();openEditModal(task)}}
             className="hover:bg-gray-100"
           >
@@ -159,7 +175,8 @@ const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal })
   );
 };
 
-const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,openEditModal }) => {
+// Update DroppableSection component props and pass openCommentsModal to TaskCard
+const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,openEditModal, openCommentsModal }) => {
   const { setNodeRef } = useDroppable({
     id: section,
   });
@@ -209,6 +226,7 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
                       getPriorityColor={getPriorityColor}
                       openDeleteModal={openDeleteModal}
                       openEditModal={openEditModal}
+                      openCommentsModal={openCommentsModal}
                       />
                     ))}
                   </TableBody>
@@ -232,6 +250,7 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
 
 const ProjectPage = () => {
   const { projectId } = useParams();
+  const { user } = useUser();
   const [token, setToken] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [projectName, setProjectName] = useState('');
@@ -256,6 +275,10 @@ const ProjectPage = () => {
   const [delTaskId, setDelTaskId] = useState(null);
   const [aiPopup,setAiPopup] = useState(false);
   const [activeTask, setActiveTask] = useState(null);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [selectedTaskForComments, setSelectedTaskForComments] = useState(null);
+  const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState([]);
   const onOpen = () => {
     setAiPopup(true)
   };
@@ -535,6 +558,28 @@ const ProjectPage = () => {
     setActiveTask(draggedTask);
   };
 
+  const openCommentsModal = (task) => {
+    setSelectedTaskForComments(task);
+    setShowCommentsModal(true);
+    // TODO: Fetch comments for this task
+    setComments([]); // This will be replaced with actual API call
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    
+    // TODO: API call to save comment
+    const fakeComment = {
+      id: Date.now(),
+      content: newComment,
+      created_at: new Date().toISOString(),
+      author: user?.fullName, // This should come from your auth system
+    };
+    
+    setComments([...comments, fakeComment]);
+    setNewComment('');
+  };
+
   if (loading) {
     return (
       <Loading />
@@ -553,7 +598,13 @@ const ProjectPage = () => {
               <h1 className="text-2xl font-semibold text-gray-800">{projectName}</h1>
             </div>
             <div className="flex space-x-4">
-            <AvatarStack members={members} />
+              <div className="flex -space-x-2">
+                {members.map((member) => (
+                  <Avatar key={member.id} className="h-8 w-8 border-2 border-white">
+                    <AvatarImage src={member.avatar} />
+                  </Avatar>
+                ))}
+              </div>
               <Button
                 variant="outline"
                 className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
@@ -595,6 +646,7 @@ const ProjectPage = () => {
                 getPriorityColor={getPriorityColor}
                 openDeleteModal={openDeleteModal}
                 openEditModal={openEditModal}
+                openCommentsModal={openCommentsModal}
                 />
               );
             })}
@@ -833,6 +885,122 @@ const ProjectPage = () => {
                   </Button>
                 </div>
               </form>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showCommentsModal && selectedTaskForComments && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <Card className="w-full max-w-3xl h-[80vh] bg-white rounded-lg shadow-xl flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Comments
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedTaskForComments.task}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowCommentsModal(false);
+                  setSelectedTaskForComments(null);
+                  setNewComment('');
+                }}
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {comments.length === 0 ? (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-500 text-center">No comments yet. Start the conversation!</p>
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} 
+                    className={`flex ${comment.author === user?.fullName ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`flex items-start space-x-2 max-w-[70%] ${
+                      comment.author === user?.fullName ? 'flex-row-reverse space-x-reverse' : 'flex-row'
+                    }`}>
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={comment.author === user?.fullName ? user?.imageUrl : ''} />
+                      </Avatar>
+                      <div className={`rounded-lg p-3 ${
+                        comment.author === user?.fullName 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        <div className="text-xs mb-1 font-medium">{comment.author}</div>
+                        <div className="prose prose-sm dark:prose-invert w-full">
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({node, ...props}) => <p className="text-inherit mb-2" {...props}/>,
+                              h3: ({node, ...props}) => <h3 className="text-inherit font-semibold text-lg mt-4 mb-2" {...props}/>,
+                              ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props}/>,
+                              ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props}/>,
+                              li: ({node, ...props}) => <li className="mb-1" {...props}/>,
+                              a: ({node, ...props}) => <a className="text-blue-500 hover:underline" {...props}/>,
+                              code: ({node, inline, ...props}) => 
+                                inline ? 
+                                  <code className="bg-gray-100 dark:bg-gray-800 rounded px-1 py-0.5" {...props}/> : 
+                                  <code className="block bg-gray-100 dark:bg-gray-800 rounded p-2 my-2" {...props}/>
+                            }}
+                          >
+                            {comment.content}
+                          </ReactMarkdown>
+                        </div>
+                        <div className={`text-xs mt-1 ${
+                          comment.author === user?.fullName ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {dayjs(comment.created_at).format('h:mm A')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-4 border-t bg-white">
+              <div className="flex flex-col space-y-2">
+                <SimpleMDE
+                  value={newComment}
+                  onChange={setNewComment}
+                  options={{
+                    autofocus: true,
+                    spellChecker: false,
+                    placeholder: "Write a comment... (Markdown supported)",
+                    status: false,
+                    toolbar: [
+                      "bold", "italic", "strikethrough", "|",
+                      "heading-3", "|",
+                      "unordered-list", "ordered-list", "|",
+                      "link", "image", "|",
+                      "preview"
+                    ],
+                    minHeight: "100px"
+                  }}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim()}
+                  >
+                    Send
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Formatting support: **bold**, *italic*, - lists, and more
+              </p>
             </div>
           </Card>
         </div>
