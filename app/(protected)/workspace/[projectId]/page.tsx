@@ -969,15 +969,15 @@ const ProjectPage = () => {
               </Button>
             </div>
             
-            <div ref={commentsContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col items-center space-y-4">
+            <div ref={commentsContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
               {comments.length === 0 ? (
-                <div className="h-full flex items-center justify-center w-full">
+                <div className="h-full flex items-center justify-center">
                   <p className="text-gray-500 text-center">No comments yet. Start the conversation!</p>
                 </div>
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} 
-                    className={`flex w-full justify-center`}
+                    className={`flex ${comment.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`flex items-start space-x-2 max-w-[70%] ${
                       comment.user_id === user?.id ? 'flex-row-reverse space-x-reverse' : 'flex-row'
@@ -1001,7 +1001,7 @@ const ProjectPage = () => {
                               ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props}/>,
                               li: ({node, ...props}) => <li className="mb-1" {...props}/>,
                               a: ({node, ...props}) => <a className="text-blue-500 hover:underline" {...props}/>,
-                              code: ({node, inline, ...props}) => 
+                              code: ({node, inline, ...props}: any) => 
                                 inline ? 
                                   <code className="bg-gray-100 dark:bg-gray-800 rounded px-1 py-0.5" {...props}/> : 
                                   <code className="block bg-gray-100 dark:bg-gray-800 rounded p-2 my-2" {...props}/>
