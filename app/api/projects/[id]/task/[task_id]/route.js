@@ -17,17 +17,19 @@ export async function PATCH(request,{params}) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
       console.log(task,description,assigned,deadline,priority,category );
-
-      const { data, error } = await supabase
-      .from('tasks')
-      .update({
+      const updatePayload = {
         task: task,        
         desc: description || null, 
         deadline: deadline || null,
         priority: priority || null,
-        assigned: Array.isArray(assigned) && assigned.length === 0 ? null : assigned, 
-        category: category || "todo"
-      })
+        assigned: Array.isArray(assigned) && assigned.length === 0 ? null : assigned
+      }
+      if(category !== undefined) {
+        updatePayload.category = category
+      }
+      const { data, error } = await supabase
+      .from('tasks')
+      .update(updatePayload)
       .eq('id', task_id);
     
           
