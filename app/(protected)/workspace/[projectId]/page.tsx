@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Toaster, toast } from "react-hot-toast";
 import Loading from '../_components/Loading';
 import {AiPopup} from '../_components/AiPopup';
@@ -279,6 +279,8 @@ const ProjectPage = () => {
   const [selectedTaskForComments, setSelectedTaskForComments] = useState(null);
   const [newComment, setNewComment] = useState('');
   const [comments, setComments] = useState([]);
+  const commentsContainerRef = useRef(null);
+  const [pollingInterval, setPollingInterval] = useState(null);
   const onOpen = () => {
     setAiPopup(true)
   };
@@ -558,26 +560,78 @@ const ProjectPage = () => {
     setActiveTask(draggedTask);
   };
 
+  const scrollToBottom = () => {
+    if (commentsContainerRef.current) {
+      commentsContainerRef.current.scrollTop = commentsContainerRef.current.scrollHeight;
+    }
+  };
+
+  const fetchComments = async (taskId) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/task/${taskId}/comments`);
+      const data = await response.json();
+      if (!response.ok) {
+        toast.error("Failed to fetch comments", { position: 'top-center' });
+        return;
+      }
+      setComments(data.comments);
+      // Scroll to bottom after fetching comments
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      toast.error("Error fetching comments", { position: 'top-center' });
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    // Start polling when comments modal is open
+    if (showCommentsModal && selectedTaskForComments) {
+      const interval = setInterval(() => {
+        fetchComments(selectedTaskForComments.id);
+      }, 5000); // Poll every 5 seconds
+      setPollingInterval(interval);
+
+      return () => {
+        clearInterval(interval);
+        setPollingInterval(null);
+      };
+    }
+  }, [showCommentsModal, selectedTaskForComments]);
+
   const openCommentsModal = (task) => {
     setSelectedTaskForComments(task);
     setShowCommentsModal(true);
-    // TODO: Fetch comments for this task
-    setComments([]); // This will be replaced with actual API call
+    fetchComments(task.id);
+    setNewComment('');
   };
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
     
-    // TODO: API call to save comment
-    const fakeComment = {
-      id: Date.now(),
-      content: newComment,
-      created_at: new Date().toISOString(),
-      author: user?.fullName, // This should come from your auth system
-    };
-    
-    setComments([...comments, fakeComment]);
-    setNewComment('');
+    try {
+      const response = await fetch(`/api/projects/${projectId}/task/${selectedTaskForComments.id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          content: newComment,
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error("Failed to add comment", { position: 'top-center' });
+        return;
+      }
+
+      // Refresh comments and scroll to bottom
+      await fetchComments(selectedTaskForComments.id);
+      setNewComment('');
+      scrollToBottom();
+    } catch (error) {
+      toast.error("Error adding comment", { position: 'top-center' });
+      console.error(error);
+    }
   };
 
   if (loading) {
@@ -915,28 +969,28 @@ const ProjectPage = () => {
               </Button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div ref={commentsContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col items-center space-y-4">
               {comments.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
+                <div className="h-full flex items-center justify-center w-full">
                   <p className="text-gray-500 text-center">No comments yet. Start the conversation!</p>
                 </div>
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} 
-                    className={`flex ${comment.author === user?.fullName ? 'justify-end' : 'justify-start'}`}
+                    className={`flex w-full justify-center`}
                   >
                     <div className={`flex items-start space-x-2 max-w-[70%] ${
-                      comment.author === user?.fullName ? 'flex-row-reverse space-x-reverse' : 'flex-row'
+                      comment.user_id === user?.id ? 'flex-row-reverse space-x-reverse' : 'flex-row'
                     }`}>
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={comment.author === user?.fullName ? user?.imageUrl : ''} />
+                        <AvatarImage src={comment.user_image} />
                       </Avatar>
                       <div className={`rounded-lg p-3 ${
-                        comment.author === user?.fullName 
+                        comment.user_id === user?.id 
                           ? 'bg-blue-500 text-white' 
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        <div className="text-xs mb-1 font-medium">{comment.author}</div>
+                        <div className="text-xs mb-1 font-medium">{comment.user_name}</div>
                         <div className="prose prose-sm dark:prose-invert w-full">
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]}
@@ -957,7 +1011,7 @@ const ProjectPage = () => {
                           </ReactMarkdown>
                         </div>
                         <div className={`text-xs mt-1 ${
-                          comment.author === user?.fullName ? 'text-blue-100' : 'text-gray-500'
+                          comment.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
                         }`}>
                           {dayjs(comment.created_at).format('h:mm A')}
                         </div>
