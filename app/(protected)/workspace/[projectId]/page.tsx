@@ -242,7 +242,7 @@ const TaskCard = ({
         </div>
       ))
   }
-  
+
   const style = transform
     ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
     : {};
