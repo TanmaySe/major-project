@@ -34,8 +34,8 @@ import { useEffect, useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import Loading from "../_components/Loading";
 import { AiPopup } from "../_components/AiPopup";
-import TasksPerMemberBarGraph from "../_components/TasksPerMemberBarGraph";
-
+import TasksPerMember from "../_components/TasksPerMember";
+import TasksPerMemberByStatus from "../_components/TasksPerMemberByStatus"
 import AvatarStack from "../_components/AvatarStack";
 import {
   DndContext,
@@ -939,8 +939,8 @@ const ProjectPage = () => {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-12 py-8">
-        <TasksPerMemberBarGraph />
-        
+        <TasksPerMember tasks={tasks} members={members} />
+        <TasksPerMemberByStatus tasks={tasks} members={members}/>
       </div>
 
 
