@@ -30,10 +30,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import Loading from "../_components/Loading";
 import { AiPopup } from "../_components/AiPopup";
+import TasksPerMemberBarGraph from "../_components/TasksPerMemberBarGraph";
+
 import AvatarStack from "../_components/AvatarStack";
 import {
   DndContext,
@@ -52,79 +54,22 @@ import {
 import dynamic from 'next/dynamic'
 
 import 'react-quill-new/dist/quill.snow.css'
+import supabase from "@/components/utils/supabase";
 
 // Dynamically load the editor to prevent SSR issues
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false })
 
 type CommentType = {
-  comment_id: number
-  parent_comment_id: number | null
-  avatar: string
-  content: string // HTML string from Quill
+  id: number
+  content: string
+  created_at: string // ISO timestamp
+  task_id: number | null
+  user_id: string
+  user_name: string
+  user_image: string | null
+  user_email: string | null
+  parent_comment_id:number | null
 }
-const sampleComments: CommentType[] = [
-  {
-    comment_id: 1,
-    parent_comment_id: null,
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    content: '<p><strong>John:</strong> This is the top-level comment</p>',
-  },
-  {
-    comment_id: 2,
-    parent_comment_id: 1,
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    content: '<p><em>Anna:</em> This is a reply</p>',
-  },
-  {
-    comment_id: 3,
-    parent_comment_id: 2,
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    content: '<p><strong><em>Hey&nbsp;there</em></strong></p><p>Perform&nbsp;following&nbsp;task:</p><ol><li>Go&nbsp;to&nbsp;replit</li><li>Import&nbsp;github</li><li>Do&nbsp;some&nbsp;dev</li></ol><p></p>',
-  },
-  {
-    comment_id: 4,
-    parent_comment_id: null,
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    content: '<p><strong>Mark:</strong> I totally agree with the points above.</p>',
-  },
-  {
-    comment_id: 5,
-    parent_comment_id: 4,
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    content: '<p><em>Sara:</em> Same here, especially the part about performance.</p>',
-  },
-  {
-    comment_id: 6,
-    parent_comment_id: null,
-    avatar: 'https://i.pravatar.cc/150?img=6',
-    content: '<p><strong>Emily:</strong> Does anyone know how this scales with large data sets?</p>',
-  },
-  {
-    comment_id: 7,
-    parent_comment_id: 6,
-    avatar: 'https://i.pravatar.cc/150?img=7',
-    content: '<p><em>Mike:</em> Good question — I ran into some issues when the dataset grew beyond 10k rows.</p>',
-  },
-  {
-    comment_id: 8,
-    parent_comment_id: 7,
-    avatar: 'https://i.pravatar.cc/150?img=8',
-    content: '<p>Same here. You might need to implement pagination or virtualization.</p>',
-  },
-  {
-    comment_id: 9,
-    parent_comment_id: 1,
-    avatar: 'https://i.pravatar.cc/150?img=9',
-    content: '<p><em>Linda:</em> I have a slightly different take on this...</p>',
-  },
-  {
-    comment_id: 10,
-    parent_comment_id: 9,
-    avatar: 'https://i.pravatar.cc/150?img=10',
-    content: '<p>I love how respectful this discussion is. Keep it going!</p>',
-  },
-]
-
 
 interface Errors {
   priority?: string;
@@ -203,9 +148,12 @@ const TaskCard = ({
   openEditModal,
   openDeleteModal,
 }) => {
-  const [comments, setComments] = useState<CommentType[]>(sampleComments)
+  const [comments, setComments] = useState<CommentType[]>([])
   const [replyTo, setReplyTo] = useState<CommentType | null>(null)
   const [replyContent, setReplyContent] = useState<string>('')
+  const [isOpen, setIsOpen] = useState(false)
+  const channelRef = useRef(null) // store channel instance
+
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: task.id.toString(),
@@ -214,19 +162,112 @@ const TaskCard = ({
   if (isDragging) {
     return <TableRow ref={setNodeRef} className="opacity-0" />;
   }
+  const handleOpenChange = async (open) => {
+    setIsOpen(open)
 
+    if (open && task?.id) {
+      // Subscribe
+      const channel = supabase
+        .channel(`comments-for-task-${task.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "comments",
+            filter: `task_id=eq.${task.id}`,
+          },
+          (payload) => {
+            console.log("🆕 New comment:", payload.new)
+            setComments((prev) => [...prev, payload.new as CommentType])
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "DELETE",
+            schema: "public",
+            table: "comments",
+            filter: `task_id=eq.${task.id}`,
+          },
+          (payload) => {
+            console.log("❌ Comment deleted:", payload.old)
+          }
+        )
+        .subscribe()
+
+      channelRef.current = channel
+    } else if (!open && channelRef.current) {
+      // Unsubscribe
+      supabase.removeChannel(channelRef.current)
+      channelRef.current = null
+      console.log("🛑 Unsubscribed")
+    }
+  }
+  const fecthTaskComments = async (taskId) => {
+    const response = await fetch(`/api/comments/${taskId}`);
+    if(!response.ok) {
+      console.log("Error fetching comments",response);
+      return;
+    }
+    const data = await response.json();
+    console.log("comments : ",data)
+    setComments(data)
+    
+  }
+  const sendComment = async (taskId, content, parentCommentId) => {
+    const response = await fetch(`/api/comments/${taskId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        content,
+        taskId,
+        parentCommentId
+      }),
+    });
+    if(!response.ok) {
+      console.log("Error sending comment",response);
+      return;
+    }
+    const data = await response.json();
+  }
   const renderComments = (parentId: number | null = null, depth = 0) => {
     return comments
       .filter((c) => c.parent_comment_id === parentId)
       .map((comment) => (
-        <div key={comment.comment_id} style={{ marginLeft: depth * 20 }} className="mb-4">
+        <div key={comment.id} style={{ marginLeft: depth * 20 }} className="mb-4">
           <div className="flex items-start gap-3">
-            <img src={comment.avatar} alt="avatar" className="w-8 h-8 rounded-full" />
+            {/* Avatar */}
+            <img
+              src={comment.user_image ?? '/default-avatar.png'}
+              alt="avatar"
+              className="w-8 h-8 rounded-full"
+            />
+
+            {/* Comment content block */}
             <div className="flex-1">
+              {/* Name and time */}
+              <div className="text-sm text-muted-foreground mb-1">
+                <span className="font-semibold text-gray-800">{comment.user_name}</span>
+                <span className="ml-2 text-xs">
+                  • Posted on{' '}
+                  {new Date(comment.created_at).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </span>
+              </div>
+
+
+              {/* Comment body */}
               <div
-                className="prose prose-sm max-w-none"
+                className="prose prose-sm max-w-none mt-1"
                 dangerouslySetInnerHTML={{ __html: comment.content }}
               />
+
+              {/* Reply button */}
               <Button
                 variant="link"
                 size="sm"
@@ -235,13 +276,15 @@ const TaskCard = ({
               >
                 Reply
               </Button>
-
             </div>
           </div>
-          {renderComments(comment.comment_id, depth + 1)}
+
+          {/* Render replies */}
+          {renderComments(comment.id, depth + 1)}
         </div>
       ))
   }
+
 
   const style = transform
     ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
@@ -327,9 +370,9 @@ const TaskCard = ({
           >
             <Trash2 className="w-4 h-4 text-red-600" />
           </Button>
-          <Sheet>
+          <Sheet open={isOpen} onOpenChange={handleOpenChange}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-accent">
+              <Button onClick={() => fecthTaskComments(task.id)} variant="ghost" size="icon" className="hover:bg-accent">
                 <MessageSquare className="h-5 w-5 text-muted-foreground" />
               </Button>
             </SheetTrigger>
@@ -373,9 +416,10 @@ const TaskCard = ({
                     onClick={() => {
                       console.log(
                         replyTo
-                          ? `Replying to ${replyTo.comment_id}: ${replyContent}`
+                          ? `Replying to ${replyTo.id}: ${replyContent}`
                           : `Posting top-level comment: ${replyContent}`
                       )
+                      sendComment(task.id, replyContent, replyTo ? replyTo.id : null)
                       setReplyContent('')
                       setReplyTo(null)
                     }}
@@ -893,6 +937,13 @@ const ProjectPage = () => {
         onOpen={onOpen}
         projectId={projectId}
       />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-12 py-8">
+        <TasksPerMemberBarGraph />
+        
+      </div>
+
+
 
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
