@@ -1,10 +1,24 @@
-'use client';
-import * as Collapsible from '@radix-ui/react-collapsible';
+"use client";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import dayjs from "dayjs";
-import { CalendarDays, Folder, LayoutList, NotebookPen, ShieldQuestion, User, Edit, Trash2, Plus, ChevronDown, CheckCircle,AlertTriangle } from "lucide-react";
+import {
+  CalendarDays,
+  Folder,
+  LayoutList,
+  NotebookPen,
+  ShieldQuestion,
+  User,
+  Edit,
+  Trash2,
+  Plus,
+  ChevronDown,
+  CheckCircle,
+  AlertTriangle,
+  MessageSquare,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,20 +29,109 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
-import Loading from '../_components/Loading';
-import {AiPopup} from '../_components/AiPopup';
-import AvatarStack from '../_components/AvatarStack';
-import { DndContext, DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
+import Loading from "../_components/Loading";
+import { AiPopup } from "../_components/AiPopup";
+import AvatarStack from "../_components/AvatarStack";
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import dynamic from 'next/dynamic'
+
+import 'react-quill-new/dist/quill.snow.css'
+
+// Dynamically load the editor to prevent SSR issues
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false })
+
+type CommentType = {
+  comment_id: number
+  parent_comment_id: number | null
+  avatar: string
+  content: string // HTML string from Quill
+}
+const sampleComments: CommentType[] = [
+  {
+    comment_id: 1,
+    parent_comment_id: null,
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    content: '<p><strong>John:</strong> This is the top-level comment</p>',
+  },
+  {
+    comment_id: 2,
+    parent_comment_id: 1,
+    avatar: 'https://i.pravatar.cc/150?img=2',
+    content: '<p><em>Anna:</em> This is a reply</p>',
+  },
+  {
+    comment_id: 3,
+    parent_comment_id: 2,
+    avatar: 'https://i.pravatar.cc/150?img=3',
+    content: '<p><strong><em>Hey&nbsp;there</em></strong></p><p>Perform&nbsp;following&nbsp;task:</p><ol><li>Go&nbsp;to&nbsp;replit</li><li>Import&nbsp;github</li><li>Do&nbsp;some&nbsp;dev</li></ol><p></p>',
+  },
+  {
+    comment_id: 4,
+    parent_comment_id: null,
+    avatar: 'https://i.pravatar.cc/150?img=4',
+    content: '<p><strong>Mark:</strong> I totally agree with the points above.</p>',
+  },
+  {
+    comment_id: 5,
+    parent_comment_id: 4,
+    avatar: 'https://i.pravatar.cc/150?img=5',
+    content: '<p><em>Sara:</em> Same here, especially the part about performance.</p>',
+  },
+  {
+    comment_id: 6,
+    parent_comment_id: null,
+    avatar: 'https://i.pravatar.cc/150?img=6',
+    content: '<p><strong>Emily:</strong> Does anyone know how this scales with large data sets?</p>',
+  },
+  {
+    comment_id: 7,
+    parent_comment_id: 6,
+    avatar: 'https://i.pravatar.cc/150?img=7',
+    content: '<p><em>Mike:</em> Good question — I ran into some issues when the dataset grew beyond 10k rows.</p>',
+  },
+  {
+    comment_id: 8,
+    parent_comment_id: 7,
+    avatar: 'https://i.pravatar.cc/150?img=8',
+    content: '<p>Same here. You might need to implement pagination or virtualization.</p>',
+  },
+  {
+    comment_id: 9,
+    parent_comment_id: 1,
+    avatar: 'https://i.pravatar.cc/150?img=9',
+    content: '<p><em>Linda:</em> I have a slightly different take on this...</p>',
+  },
+  {
+    comment_id: 10,
+    parent_comment_id: 9,
+    avatar: 'https://i.pravatar.cc/150?img=10',
+    content: '<p>I love how respectful this discussion is. Keep it going!</p>',
+  },
+]
+
 
 interface Errors {
   priority?: string;
   task?: string;
-  description?:string;
-  assigned?:string;
-  deadline?:string;
+  description?: string;
+  assigned?: string;
+  deadline?: string;
 }
 interface Task {
   id: number; // bigint is mapped to number in TypeScript
@@ -48,7 +151,7 @@ interface Task {
 const TaskCardPreview = ({ task, getPriorityColor }) => {
   // Add null checks to prevent "Cannot read properties of null" errors
   if (!task) return null;
-  
+
   return (
     <div className="bg-white border rounded-md shadow-md p-4 w-full max-w-3xl">
       <div className="flex justify-between items-start">
@@ -60,7 +163,10 @@ const TaskCardPreview = ({ task, getPriorityColor }) => {
             <h3 className="font-medium">{task.task}</h3>
           </div>
           <div className="text-sm text-gray-600 mt-1">
-            {task.desc && (task.desc.length > 50 ? `${task.desc.substring(0, 50)}...` : task.desc)}
+            {task.desc &&
+              (task.desc.length > 50
+                ? `${task.desc.substring(0, 50)}...`
+                : task.desc)}
           </div>
         </div>
         <Badge className={getPriorityColor(task.priority)}>
@@ -69,11 +175,17 @@ const TaskCardPreview = ({ task, getPriorityColor }) => {
       </div>
       <div className="flex justify-between items-center mt-3">
         <div className="flex flex-wrap gap-1">
-          {task.assigned && task.assigned.length > 0 && task.assigned.map((assignee, idx) => (
-            <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {assignee}
-            </Badge>
-          ))}
+          {task.assigned &&
+            task.assigned.length > 0 &&
+            task.assigned.map((assignee, idx) => (
+              <Badge
+                key={idx}
+                variant="outline"
+                className="bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {assignee}
+              </Badge>
+            ))}
         </div>
         <div className="flex items-center text-sm text-gray-500">
           <CalendarDays className="w-4 h-4 mr-1" />
@@ -84,44 +196,98 @@ const TaskCardPreview = ({ task, getPriorityColor }) => {
   );
 };
 
-const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal }) => {
-  const { attributes, listeners, setNodeRef, transform,isDragging } = useDraggable({
-    id: task.id.toString(),
-    data: { section:task.category,task }, // Only pass section, not the entire task
-  });
+const TaskCard = ({
+  task,
+  index,
+  getPriorityColor,
+  openEditModal,
+  openDeleteModal,
+}) => {
+  const [comments, setComments] = useState<CommentType[]>(sampleComments)
+  const [replyTo, setReplyTo] = useState<CommentType | null>(null)
+  const [replyContent, setReplyContent] = useState<string>('')
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: task.id.toString(),
+      data: { section: task.category, task }, // Only pass section, not the entire task
+    });
   if (isDragging) {
     return <TableRow ref={setNodeRef} className="opacity-0" />;
   }
-  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {};
+
+  const renderComments = (parentId: number | null = null, depth = 0) => {
+    return comments
+      .filter((c) => c.parent_comment_id === parentId)
+      .map((comment) => (
+        <div key={comment.comment_id} style={{ marginLeft: depth * 20 }} className="mb-4">
+          <div className="flex items-start gap-3">
+            <img src={comment.avatar} alt="avatar" className="w-8 h-8 rounded-full" />
+            <div className="flex-1">
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: comment.content }}
+              />
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs mt-1 px-0"
+                onClick={() => setReplyTo(comment)}
+              >
+                Reply
+              </Button>
+
+            </div>
+          </div>
+          {renderComments(comment.comment_id, depth + 1)}
+        </div>
+      ))
+  }
+  
+  const style = transform
+    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
+    : {};
 
   return (
-    <TableRow ref={setNodeRef} key={`task-${task.id}`} style={style} className="hover:bg-gray-50">
+    <TableRow
+      ref={setNodeRef}
+      key={`task-${task.id}`}
+      style={style}
+      className="hover:bg-gray-50"
+    >
       <TableCell {...listeners} {...attributes} className="font-medium">
-      {dayjs().isAfter(dayjs(task.deadline)) && (
-        <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
-      )}
+        {dayjs().isAfter(dayjs(task.deadline)) && (
+          <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
+        )}
         {task.task}
       </TableCell>
       <TableCell {...listeners} {...attributes}>
         <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
-          li: ({ children }) => <li className="ml-4">{children}</li>,
-        }}
+          remarkPlugins={[remarkGfm]}
+          components={{
+            ul: ({ children }) => (
+              <ul className="list-disc pl-5">{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="list-decimal pl-5">{children}</ol>
+            ),
+            li: ({ children }) => <li className="ml-4">{children}</li>,
+          }}
         >
           {task.desc}
-
         </ReactMarkdown>
       </TableCell>
       <TableCell {...listeners} {...attributes}>
         <div className="flex flex-wrap gap-1">
-          {task.assigned && task.assigned.map((assignee, idx) => (
-            <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {assignee}
-            </Badge>
-          ))}
+          {task.assigned &&
+            task.assigned.map((assignee, idx) => (
+              <Badge
+                key={idx}
+                variant="outline"
+                className="bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {assignee}
+              </Badge>
+            ))}
         </div>
       </TableCell>
       <TableCell {...listeners} {...attributes}>
@@ -140,7 +306,11 @@ const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal })
           <Button
             variant="ghost"
             size="sm"
-            onClick={(e) => {e.preventDefault();e.stopPropagation();openEditModal(task)}}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openEditModal(task);
+            }}
             className="hover:bg-gray-100"
           >
             <Edit className="w-4 h-4 text-gray-600" />
@@ -148,18 +318,88 @@ const TaskCard = ({ task,index,getPriorityColor,openEditModal,openDeleteModal })
           <Button
             variant="ghost"
             size="sm"
-            onClick={(e) => {e.preventDefault();e.stopPropagation();openDeleteModal(task)}}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openDeleteModal(task);
+            }}
             className="hover:bg-red-100"
           >
             <Trash2 className="w-4 h-4 text-red-600" />
           </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="hover:bg-accent">
+                <MessageSquare className="h-5 w-5 text-muted-foreground" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="!w-[60vw] !max-w-[75vw] p-6 flex flex-col">
+              <SheetHeader>
+                <SheetTitle className="text-xl font-bold">
+                  Leave a Comment
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto mt-4 space-y-4">
+                {renderComments()}
+              </div>
+              <SheetFooter className="pt-4 border-t mt-4">
+                <div className="w-full">
+                  <p className="font-semibold mb-2">Add a new comment</p>
+
+                  {replyTo && (
+                    <div className="bg-gray-100 border-l-4 border-blue-500 p-2 rounded mb-2 relative">
+                      <div
+                        className="text-sm text-gray-800"
+                        dangerouslySetInnerHTML={{ __html: replyTo.content }}
+                      />
+                      <button
+                        className="absolute top-1 right-1 text-gray-500 hover:text-red-500"
+                        onClick={() => setReplyTo(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  <ReactQuill
+                    theme="snow"
+                    value={replyContent}
+                    onChange={setReplyContent}
+                    className="bg-white"
+                  />
+
+                  <Button
+                    className="mt-2"
+                    onClick={() => {
+                      console.log(
+                        replyTo
+                          ? `Replying to ${replyTo.comment_id}: ${replyContent}`
+                          : `Posting top-level comment: ${replyContent}`
+                      )
+                      setReplyContent('')
+                      setReplyTo(null)
+                    }}
+                  >
+                    {replyTo ? 'Reply' : 'Post Comment'}
+                  </Button>
+                </div>
+              </SheetFooter>
+
+            </SheetContent>
+          </Sheet>
         </div>
       </TableCell>
     </TableRow>
   );
 };
 
-const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,openEditModal }) => {
+const DroppableSection = ({
+  section,
+  tasks,
+  getPriorityColor,
+  openDeleteModal,
+  openEditModal,
+}) => {
   const { setNodeRef } = useDroppable({
     id: section,
   });
@@ -170,14 +410,22 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
         <Collapsible.Trigger className="w-full">
           <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg ${
-                section === 'To-do' ? 'bg-purple-100 text-purple-600' :
-                section === 'In Progress' ? 'bg-blue-100 text-blue-600' :
-                'bg-green-100 text-green-600'
-              }`}>
-                {section === 'To-do' ? <LayoutList className="w-4 h-4" /> :
-                section === 'In Progress' ? <NotebookPen className="w-4 h-4" /> :
-                <CheckCircle className="w-4 h-4" />}
+              <div
+                className={`p-2 rounded-lg ${
+                  section === "To-do"
+                    ? "bg-purple-100 text-purple-600"
+                    : section === "In Progress"
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-green-100 text-green-600"
+                }`}
+              >
+                {section === "To-do" ? (
+                  <LayoutList className="w-4 h-4" />
+                ) : section === "In Progress" ? (
+                  <NotebookPen className="w-4 h-4" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
               </div>
               <h2 className="text-lg font-medium text-gray-800">{section}</h2>
             </div>
@@ -192,7 +440,9 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
                   <TableHeader>
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-semibold">Task</TableHead>
-                      <TableHead className="font-semibold">Description</TableHead>
+                      <TableHead className="font-semibold">
+                        Description
+                      </TableHead>
                       <TableHead className="font-semibold">Assigned</TableHead>
                       <TableHead className="font-semibold">Deadline</TableHead>
                       <TableHead className="font-semibold">Priority</TableHead>
@@ -201,14 +451,13 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
                   </TableHeader>
                   <TableBody>
                     {tasks.map((task, index) => (
-                     
-                      <TaskCard 
-                      key={task.id}
-                      task={task} 
-                      index={index}
-                      getPriorityColor={getPriorityColor}
-                      openDeleteModal={openDeleteModal}
-                      openEditModal={openEditModal}
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        index={index}
+                        getPriorityColor={getPriorityColor}
+                        openDeleteModal={openDeleteModal}
+                        openEditModal={openEditModal}
                       />
                     ))}
                   </TableBody>
@@ -216,9 +465,11 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
               </div>
             ) : (
               <div className="p-4 text-gray-500 text-sm">
-                {section === 'To-do' ? 'No tasks in To-do' :
-                section === 'In Progress' ? 'No tasks in progress' :
-                'No completed tasks'}
+                {section === "To-do"
+                  ? "No tasks in To-do"
+                  : section === "In Progress"
+                    ? "No tasks in progress"
+                    : "No completed tasks"}
               </div>
             )}
           </CardContent>
@@ -228,13 +479,11 @@ const DroppableSection = ({ section, tasks,getPriorityColor,openDeleteModal,open
   );
 };
 
-
-
 const ProjectPage = () => {
   const { projectId } = useParams();
   const [token, setToken] = useState<string | null>(null);
-  const [newEmail, setNewEmail] = useState('');
-  const [projectName, setProjectName] = useState('');
+  const [newEmail, setNewEmail] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [detailsFetchedSuccess, setDetailsFetchedSuccess] = useState(false);
@@ -242,11 +491,11 @@ const ProjectPage = () => {
   const [invited, setInvited] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newTask, setNewTask] = useState({
-    task: '',
-    description: '',
+    task: "",
+    description: "",
     assigned: [],
-    deadline: '',
-    priority: '',
+    deadline: "",
+    priority: "",
   });
   const [members, setMembers] = useState([]);
   const [errors, setErrors] = useState<Errors>({});
@@ -254,54 +503,69 @@ const ProjectPage = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [delTaskId, setDelTaskId] = useState(null);
-  const [aiPopup,setAiPopup] = useState(false);
+  const [aiPopup, setAiPopup] = useState(false);
   const [activeTask, setActiveTask] = useState(null);
   const onOpen = () => {
-    setAiPopup(true)
+    setAiPopup(true);
   };
   const onClose = () => {
-    setAiPopup(false)
-  }
+    setAiPopup(false);
+  };
 
-  const onDragEnd = async(event) => {
-    setActiveTask(null)
+  const onDragEnd = async (event) => {
+    setActiveTask(null);
     if (!event.over) {
-
       return;
     }
     const sourceSection = event.active.data.current?.section;
     const destinationSection = event.over.id;
-    
+
     // Return early if source and destination are the same section
-    if ((sourceSection === "todo" && destinationSection === "To-do") || (sourceSection === "inprogress" && destinationSection === "In Progress") || (sourceSection === "done" && destinationSection === "Done")) return;
-    console.log("cleared validation")
-    const response = await fetch(`/api/projects/${projectId}/task/${event.active.data.current?.task.id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
+    if (
+      (sourceSection === "todo" && destinationSection === "To-do") ||
+      (sourceSection === "inprogress" &&
+        destinationSection === "In Progress") ||
+      (sourceSection === "done" && destinationSection === "Done")
+    )
+      return;
+    console.log("cleared validation");
+    const response = await fetch(
+      `/api/projects/${projectId}/task/${event.active.data.current?.task.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: event.active.data.current?.task.task,
+          description: event.active.data.current?.task.desc,
+          deadline: event.active.data.current?.task.deadline,
+          priority: event.active.data.current?.task.priority,
+          assigned: event.active.data.current?.task.assigned,
+          category:
+            destinationSection == "To-do"
+              ? "todo"
+              : destinationSection == "In Progress"
+                ? "inprogress"
+                : destinationSection == "Done"
+                  ? "done"
+                  : "todo",
+        }),
       },
-      body: JSON.stringify({
-        task:event.active.data.current?.task.task,
-        description:event.active.data.current?.task.desc,
-        deadline:event.active.data.current?.task.deadline,
-        priority:event.active.data.current?.task.priority,
-        assigned:event.active.data.current?.task.assigned,
-        category:(destinationSection == "To-do") ? "todo" : (destinationSection == "In Progress") ? "inprogress" : (destinationSection == "Done") ? "done" : "todo"
-      }),
-    });
-    if(response.ok){
-      fetchTasks()
+    );
+    if (response.ok) {
+      fetchTasks();
     }
   };
 
   // Priority color mapping
   const getPriorityColor = (priority) => {
     const colors = {
-      High: 'bg-red-100 text-red-800',
-      Medium: 'bg-yellow-100 text-yellow-800',
-      Low: 'bg-green-100 text-green-800'
+      High: "bg-red-100 text-red-800",
+      Medium: "bg-yellow-100 text-yellow-800",
+      Low: "bg-green-100 text-green-800",
     };
-    return colors[priority] || 'bg-gray-100 text-gray-800';
+    return colors[priority] || "bg-gray-100 text-gray-800";
   };
 
   // Open modal for editing
@@ -328,27 +592,30 @@ const ProjectPage = () => {
     if (!validateForm()) return;
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/task/${selectedTask.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/projects/${projectId}/task/${selectedTask.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newTask),
         },
-        body: JSON.stringify(newTask),
-      });
+      );
 
       if (!response.ok) {
-        toast.error("Failed to update task", { position: 'top-center' });
+        toast.error("Failed to update task", { position: "top-center" });
         return;
       }
 
       toast.success("Task updated successfully!", { position: "top-center" });
       setShowModal(false);
       setNewTask({
-        task: '',
-        description: '',
+        task: "",
+        description: "",
         assigned: [],
-        deadline: '',
-        priority: '',
+        deadline: "",
+        priority: "",
       });
       setIsEditing(false);
       setSelectedTask(null);
@@ -364,14 +631,14 @@ const ProjectPage = () => {
         const response = await fetch(`/api/projects/${projectId}`);
         const data = await response.json();
         if (!response.ok) {
-          toast.error(data.error, { position: 'top-center' });
+          toast.error(data.error, { position: "top-center" });
           return;
         }
         setProjectName(data.projectData.name);
         setMembers(data.membersData);
         setDetailsFetchedSuccess(true);
       } catch (error) {
-        toast.error(error, { position: 'top-center' });
+        toast.error(error, { position: "top-center" });
       } finally {
         setLoading(false);
       }
@@ -380,28 +647,30 @@ const ProjectPage = () => {
     fetchProjectName();
     if (typeof window !== "undefined") {
       const hash = window.location.hash; // Get the fragment part (#token=...)
-      const tokenValue = new URLSearchParams(hash.replace("#", "?")).get("token");
+      const tokenValue = new URLSearchParams(hash.replace("#", "?")).get(
+        "token",
+      );
       setToken(tokenValue);
     }
   }, [projectId]);
 
   useEffect(() => {
-    if(token) {
-      setAiPopup(true)
+    if (token) {
+      setAiPopup(true);
     }
-  },[token])
+  }, [token]);
 
   const fetchTasks = async () => {
     try {
       const response = await fetch(`/api/projects/${projectId}/task`);
       const data = await response.json();
       if (!response.ok) {
-        toast.error(data.error, { position: 'top-center' });
+        toast.error(data.error, { position: "top-center" });
         return;
       }
       setTasks(data.data);
     } catch (error) {
-      toast.error(error, { position: 'top-center' });
+      toast.error(error, { position: "top-center" });
     }
   };
 
@@ -434,8 +703,8 @@ const ProjectPage = () => {
   };
 
   const validateForm = () => {
-    const newErrors:Errors = {};
-    if (!newTask.task) newErrors.task = 'Task name is required';
+    const newErrors: Errors = {};
+    if (!newTask.task) newErrors.task = "Task name is required";
     // if (!newTask.description) newErrors.description = 'Description is required';
     // if (!newTask.assigned.length) newErrors.assigned = 'At least one assignee is required';
     // if (!newTask.deadline) newErrors.deadline = 'Deadline is required';
@@ -449,9 +718,9 @@ const ProjectPage = () => {
 
     try {
       const response = await fetch(`/api/projects/${projectId}/task`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(newTask),
       });
@@ -464,11 +733,11 @@ const ProjectPage = () => {
       toast.success("Task created successfully!", { position: "top-center" });
       setShowModal(false);
       setNewTask({
-        task: '',
-        description: '',
+        task: "",
+        description: "",
         assigned: [],
-        deadline: '',
-        priority: ''
+        deadline: "",
+        priority: "",
       });
       fetchTasks();
     } catch (error) {
@@ -479,26 +748,26 @@ const ProjectPage = () => {
   const addEmail = () => {
     if (newEmail.trim() && !invited.includes(newEmail.trim())) {
       setInvited([...invited, newEmail.trim()]);
-      setNewEmail('');
+      setNewEmail("");
     }
   };
 
   const removeEmail = (email) => {
-    setInvited(invited.filter(e => e !== email));
+    setInvited(invited.filter((e) => e !== email));
   };
 
   const handleInvite = async () => {
     try {
       const response = await fetch(`/api/projects/${projectId}/invites`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ invited: invited })
+        body: JSON.stringify({ invited: invited }),
       });
       const data = await response.json();
       if (!response.ok) {
-        toast.error(data.error, { position: 'top-center' });
+        toast.error(data.error, { position: "top-center" });
         return;
       }
     } catch (error) {
@@ -508,20 +777,23 @@ const ProjectPage = () => {
 
   const handleDeleteTask = async () => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/task/${delTaskId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/projects/${projectId}/task/${delTaskId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
       const data = await response.json();
       setShowDeleteModal(false);
       setDelTaskId(null);
       if (!response.ok) {
-        toast.error(data.error, { position: 'top-center' });
-        return
+        toast.error(data.error, { position: "top-center" });
+        return;
       } else {
-        toast.success("Task Deleted Successfully!", { position: 'top-center' });
+        toast.success("Task Deleted Successfully!", { position: "top-center" });
         fetchTasks();
       }
     } catch (error) {
@@ -531,14 +803,12 @@ const ProjectPage = () => {
   const onDragStart = (event) => {
     // Find the task being dragged
     const taskId = event.active.id;
-    const draggedTask = tasks.find(task => task.id.toString() === taskId);
+    const draggedTask = tasks.find((task) => task.id.toString() === taskId);
     setActiveTask(draggedTask);
   };
 
   if (loading) {
-    return (
-      <Loading />
-    );
+    return <Loading />;
   }
 
   return (
@@ -550,14 +820,16 @@ const ProjectPage = () => {
               <div className="p-3 bg-blue-100 rounded-lg">
                 <Folder className="w-6 h-6 text-blue-600" />
               </div>
-              <h1 className="text-2xl font-semibold text-gray-800">{projectName}</h1>
+              <h1 className="text-2xl font-semibold text-gray-800">
+                {projectName}
+              </h1>
             </div>
             <div className="flex space-x-4">
-            <AvatarStack members={members} />
+              <AvatarStack members={members} />
               <Button
                 variant="outline"
                 className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
-                onClick={()=> setAiPopup(true)}
+                onClick={() => setAiPopup(true)}
               >
                 <ShieldQuestion className="w-4 h-4" />
                 <span>Ask AI</span>
@@ -580,40 +852,47 @@ const ProjectPage = () => {
             </div>
           </div>
           <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <div className="space-y-4">
-            {['To-do', 'In Progress', 'Done'].map((section) => {
-              const filteredTasks = tasks.filter((task) =>
-                section === 'To-do' ? task.category === 'todo' :
-                section === 'In Progress' ? task.category === 'inprogress' :
-                task.category === 'done'
-              );
-              return (
-                <DroppableSection 
-                key={section} 
-                section={section} 
-                tasks={filteredTasks} 
-                getPriorityColor={getPriorityColor}
-                openDeleteModal={openDeleteModal}
-                openEditModal={openEditModal}
+            <div className="space-y-4">
+              {["To-do", "In Progress", "Done"].map((section) => {
+                const filteredTasks = tasks.filter((task) =>
+                  section === "To-do"
+                    ? task.category === "todo"
+                    : section === "In Progress"
+                      ? task.category === "inprogress"
+                      : task.category === "done",
+                );
+                return (
+                  <DroppableSection
+                    key={section}
+                    section={section}
+                    tasks={filteredTasks}
+                    getPriorityColor={getPriorityColor}
+                    openDeleteModal={openDeleteModal}
+                    openEditModal={openEditModal}
+                  />
+                );
+              })}
+            </div>
+            <DragOverlay>
+              {activeTask && (
+                <TaskCardPreview
+                  task={activeTask}
+                  getPriorityColor={getPriorityColor}
                 />
-              );
-            })}
-          </div>
-          <DragOverlay>
-            {activeTask && (
-              <TaskCardPreview 
-                task={activeTask} 
-                getPriorityColor={getPriorityColor} 
-              />
-            )}
-          </DragOverlay>
+              )}
+            </DragOverlay>
           </DndContext>
-
-
         </div>
       )}
 
-      <AiPopup token={token} members={members} aiPopup={aiPopup} onClose={onClose} onOpen={onOpen} projectId={projectId}/>
+      <AiPopup
+        token={token}
+        members={members}
+        aiPopup={aiPopup}
+        onClose={onClose}
+        onOpen={onOpen}
+        projectId={projectId}
+      />
 
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -623,7 +902,8 @@ const ProjectPage = () => {
                 Confirm Deletion
               </h2>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this task? This action cannot be undone.
+                Are you sure you want to delete this task? This action cannot be
+                undone.
               </p>
               <div className="flex justify-end space-x-4">
                 <Button
@@ -653,11 +933,13 @@ const ProjectPage = () => {
           <Card className="w-full max-w-lg bg-white rounded-lg shadow-xl">
             <div className="p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                {isEditing ? 'Edit Task' : 'Add New Task'}
+                {isEditing ? "Edit Task" : "Add New Task"}
               </h2>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Task</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Task
+                  </label>
                   <input
                     type="text"
                     name="task"
@@ -665,11 +947,17 @@ const ProjectPage = () => {
                     onChange={handleChange}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
-                  {errors.task && <span className="text-red-500 text-sm mt-1">{errors.task}</span>}
+                  {errors.task && (
+                    <span className="text-red-500 text-sm mt-1">
+                      {errors.task}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
                   <input
                     type="text"
                     name="description"
@@ -677,25 +965,37 @@ const ProjectPage = () => {
                     onChange={handleChange}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
-                  {errors.description && <span className="text-red-500 text-sm mt-1">{errors.description}</span>}
+                  {errors.description && (
+                    <span className="text-red-500 text-sm mt-1">
+                      {errors.description}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Assigned
+                  </label>
                   <select
                     onChange={handleAssigneeChange}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Select Member</option>
                     {members
-                      .filter((member) => !newTask.assigned.includes(member.email))
+                      .filter(
+                        (member) => !newTask.assigned.includes(member.email),
+                      )
                       .map((member) => (
                         <option key={member.id} value={member.email}>
                           {member.name}, {member.email}
                         </option>
                       ))}
                   </select>
-                  {errors.assigned && <span className="text-red-500 text-sm mt-1">{errors.assigned}</span>}
+                  {errors.assigned && (
+                    <span className="text-red-500 text-sm mt-1">
+                      {errors.assigned}
+                    </span>
+                  )}
 
                   <div className="flex flex-wrap gap-2 mt-2">
                     {newTask.assigned.map((assignee, index) => (
@@ -717,7 +1017,9 @@ const ProjectPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Deadline
+                  </label>
                   <input
                     type="date"
                     name="deadline"
@@ -725,11 +1027,17 @@ const ProjectPage = () => {
                     onChange={handleChange}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
-                  {errors.deadline && <span className="text-red-500 text-sm mt-1">{errors.deadline}</span>}
+                  {errors.deadline && (
+                    <span className="text-red-500 text-sm mt-1">
+                      {errors.deadline}
+                    </span>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Priority
+                  </label>
                   <select
                     name="priority"
                     value={newTask.priority}
@@ -741,7 +1049,11 @@ const ProjectPage = () => {
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>
                   </select>
-                  {errors.priority && <span className="text-red-500 text-sm mt-1">{errors.priority}</span>}
+                  {errors.priority && (
+                    <span className="text-red-500 text-sm mt-1">
+                      {errors.priority}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-4 mt-6">
@@ -751,11 +1063,11 @@ const ProjectPage = () => {
                     onClick={() => {
                       setShowModal(false);
                       setNewTask({
-                        task: '',
-                        description: '',
+                        task: "",
+                        description: "",
                         assigned: [],
-                        deadline: '',
-                        priority: '',
+                        deadline: "",
+                        priority: "",
                       });
                     }}
                   >
@@ -765,7 +1077,7 @@ const ProjectPage = () => {
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={isEditing ? handleUpdateTask : handleAddTask}
                   >
-                    {isEditing ? 'Update Task' : 'Add Task'}
+                    {isEditing ? "Update Task" : "Add Task"}
                   </Button>
                 </div>
               </form>
@@ -778,10 +1090,14 @@ const ProjectPage = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <Card className="w-full max-w-lg bg-white rounded-lg shadow-xl">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6">Send Invitations</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Send Invitations
+              </h2>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Add Emails</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Add Emails
+                  </label>
                   <div className="flex space-x-2">
                     <input
                       type="text"
