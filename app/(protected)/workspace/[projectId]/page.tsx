@@ -36,6 +36,9 @@ import Loading from "../_components/Loading";
 import { AiPopup } from "../_components/AiPopup";
 import TasksPerMember from "../_components/TasksPerMember";
 import TasksPerMemberByStatus from "../_components/TasksPerMemberByStatus"
+import BacklogsPerMember from "../_components/BacklogsPerMember"
+import TasksPerMemberByPriority from "../_components/TasksPerMemberByPriority"
+import UpcomingDeadlines from "../_components/UpcomingDeadlines"
 import AvatarStack from "../_components/AvatarStack";
 import {
   DndContext,
@@ -941,6 +944,9 @@ const ProjectPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-12 py-8">
         <TasksPerMember tasks={tasks} members={members} />
         <TasksPerMemberByStatus tasks={tasks} members={members}/>
+        <BacklogsPerMember tasks={tasks} members={members} />
+        <TasksPerMemberByPriority tasks={tasks} members={members} />
+        <UpcomingDeadlines tasks={tasks} members={members}/>
       </div>
 
 

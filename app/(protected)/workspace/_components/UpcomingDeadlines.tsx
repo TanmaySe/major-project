@@ -23,29 +23,47 @@ let chartConfig = {
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
-export default function TasksPerMember({tasks,members}) {
+export default function UpcomingDeadlines({tasks,members}) {
   const [freqArray,setFreqArray] = useState([])
   useEffect(() => {
-    const freqMap: Record<string,number> = {}
+    const today = new Date()
+    const sanitisedArray = []
+    const freqMap: Record<string, number> = {}
     const tempfreqArray = []
-    for(const task of tasks) {
-      if(!task.assigned) continue
-      for(const assignee of task.assigned) {
-        freqMap[assignee] = (freqMap[assignee] || 0) + 1
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    for (const task of tasks) {
+      if (task.deadline !== null) {
+        if (task.deadline.slice(0, 4) === today.getFullYear().toString()) {
+          sanitisedArray.push(task)
+        }
       }
     }
-    console.log("Tasks : ",tasks)
-    for(const key of Object.keys(freqMap)) {
-      tempfreqArray.push({member:key,tasks:freqMap[key]})
+
+    for (const task of sanitisedArray) {
+      const monthNum = task.deadline.slice(5, 7) // "01" to "12"
+      freqMap[monthNum] = (freqMap[monthNum] || 0) + 1
     }
+
+     // Convert and sort months chronologically
+    Object.keys(freqMap)
+      .sort((a, b) => parseInt(a) - parseInt(b)) // sort numerically by month number
+      .forEach((monthNum) => {
+        tempfreqArray.push({
+          month: monthNames[parseInt(monthNum) - 1],
+          pendingTasks: freqMap[monthNum],
+        })
+      })
+
     setFreqArray(tempfreqArray)
-  },[tasks])
-  
+  }, [tasks])
+
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Task burden on members</CardTitle>
+          <CardTitle>Upcoming Deadlines</CardTitle>
           <CardDescription>Check which member is assigned how many tasks.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -53,7 +71,7 @@ export default function TasksPerMember({tasks,members}) {
             <BarChart accessibilityLayer data={freqArray}>
               <CartesianGrid vertical={false} />
               <XAxis
-                dataKey="member"
+                dataKey="month"
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
@@ -63,14 +81,14 @@ export default function TasksPerMember({tasks,members}) {
                 cursor={false}
                 content={<ChartTooltipContent hideLabel />}
               />
-              <Bar dataKey="tasks" fill="var(--color-tasks)" radius={8} />
+              <Bar dataKey="pendingTasks" fill="var(--color-tasks)" radius={8} />
             </BarChart>
           </ChartContainer>
         </CardContent>
         <CardFooter className="flex-col items-start gap-2 text-sm">
-   
+
         </CardFooter>
-  
+
       </Card>
     </>
   )

@@ -23,20 +23,24 @@ import { useEffect, useState } from "react"
 
 const chartConfig = {
   todo: {
-    label: "To do",
+    label: "Low",
     color: "hsl(var(--chart-1))",
   },
   inprogress: {
-    label: "In progress",
+    label: "Medium",
     color: "hsl(var(--chart-2))",
   },
   done: {
-    label: "Done",
+    label: "High",
     color: "hsl(var(--chart-3))",
   },
+  na: {
+    label: "NA",
+    color: "hsl(var(--chart-4))",
+  }
 } satisfies ChartConfig
 
-export default function TasksPerMemberByStatus({tasks,members}) {
+export default function TasksPerMemberByPriority({tasks,members}) {
   const [freqArray,setFreqArray] = useState([])
   useEffect(() => {
 
@@ -46,24 +50,28 @@ export default function TasksPerMemberByStatus({tasks,members}) {
       if(!task.assigned) continue
       for (const assignee of task.assigned) {
         if (!freqMap[assignee]) {
-          freqMap[assignee] = { todo: 0, inprogress: 0, done: 0 }
+          freqMap[assignee] = { Low: 0, Medium: 0, High: 0 ,NA:0}
         }
-        freqMap[assignee][task.category] += 1
+        if(task.priority !== null){
+        freqMap[assignee][task.priority] += 1
+        }
+        else{
+          freqMap[assignee]["NA"] +=1
+        }
       }
 
     }
     for(const key of Object.keys(freqMap)) {
-      newfreqArray.push({member:key,todo:freqMap[key]['todo'],inprogress:freqMap[key]['inprogress'],done:freqMap[key]['done']})
+      newfreqArray.push({member:key,Low:freqMap[key]['Low'],Medium:freqMap[key]['Medium'],High:freqMap[key]['High'],NA:freqMap[key]['NA']})
     }
     setFreqArray(newfreqArray)
-    
+
   },[tasks])
-  
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tasks per member by status</CardTitle>
-        <CardDescription>January - June 2024</CardDescription>
+        <CardTitle>Tasks per member by priority</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -79,28 +87,34 @@ export default function TasksPerMemberByStatus({tasks,members}) {
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <ChartLegend content={<ChartLegendContent />} />
             <Bar
-              dataKey="todo"
+              dataKey="Low"
               stackId="a"
               fill="var(--color-todo)"
               radius={[0, 0, 4, 4]}
             />
             <Bar
-              dataKey="inprogress"
+              dataKey="Medium"
               stackId="a"
               fill="var(--color-inprogress)"
               radius={[4, 4, 0, 0]}
             />
             <Bar
-              dataKey="done"
+              dataKey="High"
               stackId="a"
               fill="var(--color-done)"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar
+              dataKey="NA"
+              stackId="a"
+              fill="var(--color-na)"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
-        
+
       </CardFooter>
     </Card>
   )
