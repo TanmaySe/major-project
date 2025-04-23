@@ -28,7 +28,7 @@ export default function AuthCallback() {
       getAccessToken({projectId, code})
       
       // Now exchange code and redirect to `/workspace/${workspaceId}`
-      window.location.href = `https://222dd688-5f37-4540-b3ef-9d1f88adfa81-00-7v1xrx9ksb3d.sisko.replit.dev/workspace/${projectId}?code=${code}`
+      window.location.href = `http://localhost:3000/workspace/${projectId}?code=${code}`
     }
   }, [searchParams])
 }

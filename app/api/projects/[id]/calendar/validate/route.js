@@ -39,29 +39,33 @@ export async function PUT(request,{params}) {
   //Get token from code and save to database
   try{
     const { code } = await request.json()
+    console.log("Code : ",code)
     const user = await currentUser()
     if(!user) {
+      console.log("Idhar pe")
       return NextResponse.json({error:"Not authenticated user"},{status:401})
     }
     const email = user?.emailAddresses[0]?.emailAddress
     const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
+    console.log("Line 50")
     const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code:decodeURIComponent(code),
         client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-        client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-        redirect_uri: 'https://222dd688-5f37-4540-b3ef-9d1f88adfa81-00-7v1xrx9ksb3d.sisko.replit.dev/auth/callback',
+        client_secret: process.env.GOOGLE_OAUTH_SECRET,
+        redirect_uri: 'http://localhost:3000/auth/callback',
         grant_type: 'authorization_code',
       }),
     })
     const tokenData = await tokenRes.json()
 
     if (!tokenRes.ok) {
-      console.error('Token Exchange Failed:', tokenData)
+      console.log('Token Exchange Failed:', tokenData)
       return NextResponse.json({ error: 'Failed to get access token' }, { status: 401 })
     }
+    console.log("I am at 66")
     const access_token = tokenData.access_token
     const { data, error } = await supabase.from('tokens').insert([
       {
@@ -72,6 +76,7 @@ export async function PUT(request,{params}) {
     if(error) {
       return NextResponse.json({error:"Error while adding token to db"},{status:500})
     }
+    console.log("access token stored in db successfully : ",data)
     return NextResponse.json({data:"Successfully asked and insert token into db"},{status:200})
     
   }catch(error) {

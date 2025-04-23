@@ -41,6 +41,7 @@ import TasksPerMemberByStatus from "../_components/TasksPerMemberByStatus"
 import BacklogsPerMember from "../_components/BacklogsPerMember"
 import TasksPerMemberByPriority from "../_components/TasksPerMemberByPriority"
 import UpcomingDeadlines from "../_components/UpcomingDeadlines"
+import CreateEventModal from "../_components/CreateEventModal"
 import AvatarStack from "../_components/AvatarStack";
 import {
   DndContext,
@@ -548,6 +549,7 @@ const ProjectPage = () => {
     priority: "",
   });
   const [members, setMembers] = useState([]);
+  const [isCalendarModalOpen,setIsCalendarModalOpen] = useState(false)
   const [errors, setErrors] = useState<Errors>({});
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -862,7 +864,7 @@ const ProjectPage = () => {
 
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID!,
-      redirect_uri: 'https://222dd688-5f37-4540-b3ef-9d1f88adfa81-00-7v1xrx9ksb3d.sisko.replit.dev/auth/callback',
+      redirect_uri: 'http://localhost:3000/auth/callback',
       response_type: 'code',
       scope: 'https://www.googleapis.com/auth/calendar',
       include_granted_scopes: 'true',
@@ -898,10 +900,14 @@ const ProjectPage = () => {
     //     },
     //   })
     //   const validateTokenData = await validateTokenResponse.json()
-    //   if(!validateTokenResponse.ok) {
+    //   if(!validateTokenResponse.ok && validateTokenResponse.status === 401) {
     //     console.log("Token not validated")
     //     //redirect to OAuth
     //     handleOAuth()
+    //     return;
+    //   }
+    //   if(!validateTokenResponse.ok) {
+    //     alert("internal server error")
     //     return;
     //   }
     //   //Now that token is valid we would call the actual calendar API.
@@ -909,7 +915,8 @@ const ProjectPage = () => {
     // }catch(error) {
     //   console.log("Error from handleCalendar : ",error)
     // }
-    console.log("hello")
+    // console.log("hello")
+    setIsCalendarModalOpen(true)
   }
 
   if (loading) {
@@ -1005,8 +1012,7 @@ const ProjectPage = () => {
         <BacklogsPerMember tasks={tasks} members={members} />
         <TasksPerMemberByPriority tasks={tasks} members={members} />
         <UpcomingDeadlines tasks={tasks} members={members}/>
-        {/* <Button onClick={handleOAuth}>OAuth</Button>
-        <Button onClick={handleCalendar}>Calendar</Button> */}
+        <Button onClick={handleCalendar}>Calendar</Button>
 
       </div>
 
