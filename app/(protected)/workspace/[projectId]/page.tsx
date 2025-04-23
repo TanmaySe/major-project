@@ -27,6 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useSearchParams } from 'next/navigation'
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from "next/navigation";
@@ -528,6 +530,7 @@ const DroppableSection = ({
 
 const ProjectPage = () => {
   const { projectId } = useParams();
+  const searchParams = useSearchParams()
   const [token, setToken] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -854,6 +857,61 @@ const ProjectPage = () => {
     setActiveTask(draggedTask);
   };
 
+  const handleOAuth = () => {
+    const state = encodeURIComponent(JSON.stringify({ projectId }))
+
+    const params = new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID!,
+      redirect_uri: 'https://222dd688-5f37-4540-b3ef-9d1f88adfa81-00-7v1xrx9ksb3d.sisko.replit.dev/auth/callback',
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/calendar',
+      include_granted_scopes: 'true',
+      access_type: 'offline',
+      prompt: 'consent',
+      state, // ✅ this is your custom data
+    })
+
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    window.location.href = oauthUrl
+  }
+
+
+  const handleCalendar = async() => {
+    // try {
+    // const token = searchParams.get('code')
+    // const response = await fetch(`/api/projects/${projectId}/calendar`,{
+    //   method:'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ token }),
+    // })
+    // const data = await response.json()
+    // console.log("Data : ",data)
+    // }catch(err) {
+    //   console.log("error : ",err)
+    // }
+    // try {
+    // // check whether token is valid or not
+    //   const validateTokenResponse = await fetch(`/api/projects/${projectId}/calendar/validate`,{
+    //     method:'POST',
+    //     headers:{
+    //       'Content-Type' : 'application/json'
+    //     },
+    //   })
+    //   const validateTokenData = await validateTokenResponse.json()
+    //   if(!validateTokenResponse.ok) {
+    //     console.log("Token not validated")
+    //     //redirect to OAuth
+    //     handleOAuth()
+    //     return;
+    //   }
+    //   //Now that token is valid we would call the actual calendar API.
+    //   console.log("OPen event modal here.")
+    // }catch(error) {
+    //   console.log("Error from handleCalendar : ",error)
+    // }
+    console.log("hello")
+  }
+
   if (loading) {
     return <Loading />;
   }
@@ -947,6 +1005,9 @@ const ProjectPage = () => {
         <BacklogsPerMember tasks={tasks} members={members} />
         <TasksPerMemberByPriority tasks={tasks} members={members} />
         <UpcomingDeadlines tasks={tasks} members={members}/>
+        {/* <Button onClick={handleOAuth}>OAuth</Button>
+        <Button onClick={handleCalendar}>Calendar</Button> */}
+
       </div>
 
 
