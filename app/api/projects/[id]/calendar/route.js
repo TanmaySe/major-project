@@ -1,63 +1,32 @@
+import { currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_KEY);
 
 export async function POST (request,{params}) {
   try{
   const {id} = await params
-  const { token } = await request.json()
-  
-  const event = {
-    summary: 'Do major project',
-    description: 'Discuss cool projects and AI ideas.',
-    start: {
-      dateTime: '2025-04-23T10:00:00+05:30', // ISO format with timezone
-      timeZone: 'Asia/Kolkata',
-    },
-    end: {
-      dateTime: '2025-04-23T11:00:00+05:30',
-      timeZone: 'Asia/Kolkata',
-    },
-    attendees: [
-      { email: 'semwaltanmay88@gmail.com' },
-      { email: 'tsemwal29@gmail.com' },
-    ],
-    reminders: {
-      useDefault: false,
-      overrides: [
-        { method: 'popup', minutes: 10 },
-      ],
-    },
+  const { event } = await request.json()
+  console.log("Event : ",event)
+  const user = await currentUser()
+  if(!user) {
+    return NextResponse.json({error:"User not authenticated"},{status:401})
   }
-    // Add this at the top of your backend file
-//     const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
-//     const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-//       body: new URLSearchParams({
-//         code:decodeURIComponent(token)
-// ,
-//         client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-//         client_secret: '',
-//         redirect_uri: 'https://222dd688-5f37-4540-b3ef-9d1f88adfa81-00-7v1xrx9ksb3d.sisko.replit.dev/auth/callback', // must match your OAuth settings
-//         grant_type: 'authorization_code',
-//       }),
-//     })
-
-    const tokenData = await tokenRes.json()
-
-    if (!tokenRes.ok) {
-      console.error('Token Exchange Failed:', tokenData)
-      return NextResponse.json({ error: 'Failed to get access token' }, { status: 401 })
-    }
-
-    const accessToken = tokenData.access_token
-    console.log("access_Token : ",accessToken)
-
+    const email = user?.emailAddresses[0]?.emailAddress
+  const { data:supabaseData, error:supabaseError } = await supabase.from("tokens").select("*").eq("email",email)
+  if(supabaseError) {
+    return NextResponse.json({error:"Error in supabase"},{status:500})
+  }
+  if(supabaseData.length === 0) {
+    return NextResponse.json({error:"No token"},{status:401})
+  }
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?key=${process.env.GOOGLE_CLOUD_API_KEY}`,
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${supabaseData[0]?.access_token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(event),
@@ -67,11 +36,12 @@ export async function POST (request,{params}) {
   console.log("Data from API : ",data)
   if(!res.ok) {
     console.log("Error : ",data)
-    return NextResponse.json({ error: data?.error || 'Google API error' }, { status: 500 })
+    return NextResponse.json({ error: data?.error?.message || 'Google API error' }, { status: 500 })
   }
   return NextResponse.json({ event: data }, { status: 200 })
   }catch(err) {
-    return NextResponse.json({error:data?.error || 'Internal server error'})
+  console.log("43",err)
+    return NextResponse.json({error:'Internal server error'},{status:500})
   }
 
 }

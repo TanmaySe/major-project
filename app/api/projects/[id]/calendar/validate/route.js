@@ -13,13 +13,10 @@ export async function POST (request,{params}) {
     const email = user?.emailAddresses[0]?.emailAddress;
     const { data, error } = await supabase
     .from("tokens")
-    .select(`
-      id, 
-      email, 
-      access_token,
-    `)
+    .select("*")
     .eq("email", email);
     if(error) {
+      console.log("24 : ",error)
       return NextResponse.json({error:"Internal server error"},{status:500})
     }
     if(data.length === 0) {
@@ -32,6 +29,7 @@ export async function POST (request,{params}) {
     }
     return NextResponse.json({data:"Access token is valid"},{status:200})
   }catch(error) {
+    console.log("37 : ",error)
     return NextResponse.json({error:"Internal server error"},{status:500})
   }
 }
@@ -55,7 +53,7 @@ export async function PUT(request,{params}) {
         code:decodeURIComponent(code),
         client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
         client_secret: process.env.GOOGLE_OAUTH_SECRET,
-        redirect_uri: 'http://localhost:3000/auth/callback',
+        redirect_uri: 'https://project-pilot-2025.vercel.app/auth/callback',
         grant_type: 'authorization_code',
       }),
     })

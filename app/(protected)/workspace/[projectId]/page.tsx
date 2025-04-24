@@ -864,7 +864,7 @@ const ProjectPage = () => {
 
     const params = new URLSearchParams({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID!,
-      redirect_uri: 'http://localhost:3000/auth/callback',
+      redirect_uri: 'https://project-pilot-2025.vercel.app/auth/callback',
       response_type: 'code',
       scope: 'https://www.googleapis.com/auth/calendar',
       include_granted_scopes: 'true',
@@ -891,33 +891,35 @@ const ProjectPage = () => {
     // }catch(err) {
     //   console.log("error : ",err)
     // }
-    // try {
-    // // check whether token is valid or not
-    //   const validateTokenResponse = await fetch(`/api/projects/${projectId}/calendar/validate`,{
-    //     method:'POST',
-    //     headers:{
-    //       'Content-Type' : 'application/json'
-    //     },
-    //   })
-    //   const validateTokenData = await validateTokenResponse.json()
-    //   if(!validateTokenResponse.ok && validateTokenResponse.status === 401) {
-    //     console.log("Token not validated")
-    //     //redirect to OAuth
-    //     handleOAuth()
-    //     return;
-    //   }
-    //   if(!validateTokenResponse.ok) {
-    //     alert("internal server error")
-    //     return;
-    //   }
-    //   //Now that token is valid we would call the actual calendar API.
-    //   console.log("OPen event modal here.")
-    // }catch(error) {
-    //   console.log("Error from handleCalendar : ",error)
-    // }
-    // console.log("hello")
-    setIsCalendarModalOpen(true)
+    try {
+    // check whether token is valid or not
+      const validateTokenResponse = await fetch(`/api/projects/${projectId}/calendar/validate`,{
+        method:'POST',
+        headers:{
+          'Content-Type' : 'application/json'
+        },
+      })
+      const validateTokenData = await validateTokenResponse.json()
+      if(!validateTokenResponse.ok && validateTokenResponse.status === 401) {
+        console.log("Token not validated")
+        //redirect to OAuth
+        handleOAuth()
+        return;
+      }
+      if(!validateTokenResponse.ok) {
+        alert("internal server error")
+        return;
+      }
+      //Now that token is valid we would call the actual calendar API.
+      console.log("OPen event modal here.")
+      setIsCalendarModalOpen(true)
+    }catch(error) {
+      console.log("Error from handleCalendar : ",error)
+    }
+    console.log("hello")
+    
   }
+
 
   if (loading) {
     return <Loading />;
@@ -1015,7 +1017,7 @@ const ProjectPage = () => {
         <Button onClick={handleCalendar}>Calendar</Button>
 
       </div>
-
+      <CreateEventModal projectId={projectId} open={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} />
 
 
       {showDeleteModal && (
