@@ -820,7 +820,7 @@ const ProjectPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ invited: invited }),
+        body: JSON.stringify({ invited: invited,projectName }),
       });
       const data = await response.json();
       if (!response.ok) {

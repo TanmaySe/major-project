@@ -21,7 +21,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "User not authenticated" }, { status: 401 });
   }
 
-  const { invited } = await request.json();
+  const { invited,projectName } = await request.json();
   if (!Array.isArray(invited)) {
     return NextResponse.json({ error: "Invalid invitee list" }, { status: 400 });
   }
@@ -33,6 +33,7 @@ export async function POST(request, { params }) {
           proj_id:id,
           email,
           status: 'pending', // Default status
+          project_name: projectName
         };
       })
     );
@@ -52,11 +53,11 @@ export async function POST(request, { params }) {
         await smtpTransporter.sendMail({
           from: GMAIL_USER,
           to: email,
-          subject: `You are invited to project ${id}`,
+          subject: `You are invited to project ${projectName}`,
           html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
             <h2 style="color: #2c3e50;">Project Invitation</h2>
-            <p>You have been invited to join the project <strong>${id}</strong>.</p>
+            <p>You have been invited to join the project <strong>${projectName}</strong>.</p>
             <p>Click the button below to accept the invitation:</p>
             <a href="${inviteLink}" style="display: inline-block; padding: 10px 20px; margin: 10px 0;
               background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px;">
