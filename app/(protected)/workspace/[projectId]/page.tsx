@@ -269,7 +269,7 @@ const TaskCard = ({
 
               {/* Comment body */}
               <div
-                className="prose prose-sm max-w-none mt-1"
+                className="mt-1 text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1"
                 dangerouslySetInnerHTML={{ __html: comment.content }}
               />
 
@@ -304,7 +304,7 @@ const TaskCard = ({
       className="hover:bg-gray-50"
     >
       <TableCell {...listeners} {...attributes} className="font-medium">
-        {dayjs().isAfter(dayjs(task.deadline)) && (
+        {task.deadline && dayjs().isAfter(dayjs(task.deadline)) && task.category !== "done" && (
           <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
         )}
         {task.task}
