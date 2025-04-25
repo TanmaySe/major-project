@@ -38,7 +38,8 @@ export async function GET(request, { params }) {
       .select(`
         id,
         name,
-        desc
+        desc,
+        created_by
       `)
       .eq("id", id)
       .single();

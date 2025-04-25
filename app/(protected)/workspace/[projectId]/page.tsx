@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import dayjs from "dayjs";
+import { useUser } from "@clerk/clerk-react";
+
 import {
   CalendarDays,
   Folder,
@@ -531,10 +533,12 @@ const DroppableSection = ({
 
 const ProjectPage = () => {
   const { projectId } = useParams();
+  const { user } = useUser()
   const searchParams = useSearchParams()
   const [token, setToken] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [projectName, setProjectName] = useState("");
+  const [projectOwner,setProjectOwner] = useState("")
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [detailsFetchedSuccess, setDetailsFetchedSuccess] = useState(false);
@@ -687,6 +691,7 @@ const ProjectPage = () => {
           return;
         }
         setProjectName(data.projectData.name);
+        setProjectOwner(data.projectData.created_by)
         setMembers(data.membersData);
         setDetailsFetchedSuccess(true);
       } catch (error) {
@@ -756,7 +761,7 @@ const ProjectPage = () => {
 
   const validateForm = () => {
     const newErrors: Errors = {};
-    if (!newTask.task) newErrors.task = "Task name is required";
+    if (!newTask.task || !newTask.task.trim()) newErrors.task = "Task name is required";
     // if (!newTask.description) newErrors.description = 'Description is required';
     // if (!newTask.assigned.length) newErrors.assigned = 'At least one assignee is required';
     // if (!newTask.deadline) newErrors.deadline = 'Deadline is required';
@@ -948,14 +953,24 @@ const ProjectPage = () => {
                 <ShieldQuestion className="w-4 h-4" />
                 <span>Ask AI</span>
               </Button>
-              <Button
+              {user?.emailAddresses[0]?.emailAddress === projectOwner && (
+                <Button
+                  variant="outline"
+                  className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
+                  onClick={() => setShowInviteModal(true)}
+                >
+                  <User className="w-4 h-4" />
+                  <span>Invite</span>
+                </Button>
+              )}
+              {/* <Button
                 variant="outline"
                 className="bg-white hover:bg-gray-50 border-gray-200 text-gray-700 flex items-center space-x-2"
                 onClick={() => setShowInviteModal(true)}
               >
                 <User className="w-4 h-4" />
                 <span>Invite</span>
-              </Button>
+              </Button> */}
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
                 onClick={() => setShowModal(true)}

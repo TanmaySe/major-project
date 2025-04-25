@@ -18,7 +18,7 @@ export async function PATCH(request,{params}) {
       }
       console.log(task,description,assigned,deadline,priority,category );
       const updatePayload = {
-        task: task,        
+        task: task.trim(),        
         desc: description || null, 
         deadline: deadline || null,
         priority: priority || null,

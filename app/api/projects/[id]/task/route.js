@@ -25,7 +25,7 @@ export async function POST(request,{params}) {
       .from('tasks')
       .insert([
         {
-          task: task,// 'task' corresponds to 'name'
+          task: task.trim(),// 'task' corresponds to 'name'
           desc: description || null, // 'description' corresponds to 'desc'
           deadline: deadline || null,
           category: category || null,
