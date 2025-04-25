@@ -23,7 +23,7 @@ function InvitePageContent() {
                     setData(null)
                 }
                 else{
-                setData(data)
+                setData(data.data)
                 setError(null)
                 }
             } catch (error) {
