@@ -90,7 +90,7 @@ function InvitePageContent() {
                         Invite Details
                     </h2>
                     <div className="text-gray-600 space-y-2">
-                        <p><strong>You are invited for :</strong> {data[0].project_name}</p>
+                        <p><strong>You are invited for :</strong> {data[0]?.project_name}</p>
                     </div>
                     <div className="flex justify-between mt-6">
                         <Button variant="accept" onClick={handleAccept}>
