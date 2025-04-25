@@ -28,7 +28,7 @@ export default function AuthCallback() {
       getAccessToken({projectId, code})
       
       // Now exchange code and redirect to `/workspace/${workspaceId}`
-      window.location.href = `http://localhost:3000/workspace/${projectId}?code=${code}`
+      window.location.href = `https://project-pilot-2025.vercel.app/workspace/${projectId}?code=${code}`
     }
   }, [searchParams])
 

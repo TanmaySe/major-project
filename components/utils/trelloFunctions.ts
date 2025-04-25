@@ -25,7 +25,7 @@ export const getBoards = async(trelloApiKey,token,setMessages,messages) => {
 }
 
 export const handleTrelloAuth = async(trelloApiKey,projectId,router) => {
-    router.push(`https://trello.com/1/authorize?expiration=1day&scope=read,account&response_type=token&key=${trelloApiKey}&return_url=http://localhost:3000/workspace/${projectId}`)
+    router.push(`https://trello.com/1/authorize?expiration=1day&scope=read,account&response_type=token&key=${trelloApiKey}&return_url=https://project-pilot-2025.vercel.app/workspace/${projectId}`)
 }
 
 export const getListsFromBoard = async(trelloApiKey,boardId,token,setMessages) => {

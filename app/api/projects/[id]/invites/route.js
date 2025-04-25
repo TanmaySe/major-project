@@ -48,7 +48,7 @@ export async function POST(request, { params }) {
     await Promise.allSettled(
       invited.map(async email => {
         const token = data.find(invite => invite.email === email).invite_id;
-        const inviteLink = `http://localhost:3000/invite?token=${token}`;
+        const inviteLink = `https://project-pilot-2025.vercel.app/invite?token=${token}`;
         await smtpTransporter.sendMail({
           from: GMAIL_USER,
           to: email,
