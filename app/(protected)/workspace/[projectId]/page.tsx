@@ -1038,6 +1038,7 @@ const ProjectPage = () => {
                   onClick={() => {
                     setShowDeleteModal(false);
                     setDelTaskId(null);
+                   
                   }}
                 >
                   Cancel
@@ -1195,6 +1196,8 @@ const ProjectPage = () => {
                         deadline: "",
                         priority: "",
                       });
+                      setIsEditing(false);
+                      setSelectedTask(null);
                     }}
                   >
                     Cancel
