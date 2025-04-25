@@ -96,9 +96,6 @@ function InvitePageContent() {
                         <Button variant="accept" onClick={handleAccept}>
                             Accept
                         </Button>
-                        <Button variant="reject">
-                            Reject
-                        </Button>
                     </div>
                 </div>
             )}
